@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Emoji Breakout</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="manifest" href="manifest.json">
+</head>
+<body>
+<div class="game-container">
+
+    <!-- =============================================================== -->
+    <!-- CAMBIO: El HUD (barra de estado) ahora está aquí, al principio -->
+    <!-- del contenedor para que ocupe el espacio superior.          -->
+    <!-- =============================================================== -->
+    <div class="hud">
+        <div class="hud-item">Nivel: <span id="level-display">1</span></div>
+        <div class="hud-item">Puntos: <span id="score-display">0</span></div>
+        <div class="hud-item">Vidas: <span id="lives-display">❤️❤️❤️</span></div>
+    </div>
+
+    <!-- El Canvas ahora viene después del HUD -->
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- Los menús overlay pueden ir en cualquier lugar dentro del contenedor, -->
+    <!-- ya que se posicionan de forma absoluta. Los dejo aquí por orden. -->
+    <div class="ui-overlay" id="start-screen">
+        <h1>EMOJI BREAKOUT</h1>
+        <p>Usa el mouse o el dedo para mover la barra</p>
+        <button id="start-btn">JUGAR</button>
+    </div>
+    <div class="ui-overlay hidden" id="game-over-screen">
+        <h1>GAME OVER</h1>
+        <p>Puntuación: <span id="final-score">0</span></p>
+        <button id="restart-btn">REINTENTAR</button>
+    </div>
+    <div class="ui-overlay hidden" id="win-screen">
+        <h1>¡VICTORIA!</h1>
+        <p>¡Has completado los 10 niveles!</p>
+        <button id="play-again-btn">JUGAR DE NUEVO</button>
+    </div>
+
+</div>
+
+<script src="game.js"></script>
+<script>
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('./sw.js');
+    }
+</script>
+</body>
+</html>
+

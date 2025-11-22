@@ -1,0 +1,144 @@
+:root {
+    --bg-color: #0f172a;
+    --accent-color: #8b5cf6;
+    --text-color: #f8fafc;
+    --glass-bg: rgba(255, 255, 255, 0.1);
+    --glass-border: rgba(255, 255, 255, 0.2);
+    --hud-height: 60px;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    user-select: none;
+}
+
+body {
+    font-family: 'Outfit', sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    overflow: hidden;
+}
+
+/* =============================================================== */
+/*                       CAMBIOS PRINCIPALES AQUÍ                  */
+/* =============================================================== */
+.game-container {
+    position: relative;
+    background: radial-gradient(circle at center, #1e293b 0%, #0f172a 100%);
+    border-radius: 16px;
+    box-shadow: 0 0 50px rgba(139, 92, 246, 0.2);
+    overflow: hidden;
+    border: 1px solid var(--glass-border);
+    display: flex;
+    flex-direction: column;
+
+    /* --- CAMBIO 1: Ajuste de la altura --- */
+    /* Hacemos que el contenedor ocupe el 95% de la altura de la pantalla, */
+    /* dejando un pequeño margen visual. */
+    height: 95vh;
+
+    /* --- CAMBIO 2: Eliminamos el ancho máximo y el ancho fijo --- */
+    /* width: 100%; */      /* Eliminado */
+    /* max-width: 800px; */ /* Eliminado */
+
+    /* --- CAMBIO 3: Forzamos la relación de aspecto 9:16 --- */
+    /* El ancho se calculará automáticamente en base a la altura. */
+    aspect-ratio: 9 / 16;
+}
+
+canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+.ui-overlay {
+    position: absolute;
+    left: 0;
+    width: 100%;
+    background: rgba(15, 23, 42, 0.85);
+    backdrop-filter: blur(8px);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 10;
+    transition: opacity 0.3s ease;
+    top: var(--hud-height);
+    height: calc(100% - var(--hud-height));
+    /* --- CAMBIO 4: Hacemos que el texto se ajuste mejor en pantallas estrechas --- */
+    text-align: center;
+    padding: 0 1rem; /* Añadimos padding horizontal */
+}
+
+.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
+h1 {
+    /* --- CAMBIO 5: Reducimos el tamaño de la fuente para que quepa bien --- */
+    font-size: 3rem; /* Era 4rem */
+    margin-bottom: 1rem;
+    background: linear-gradient(to right, #c084fc, #8b5cf6);
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-shadow: 0 0 30px rgba(139, 92, 246, 0.5);
+}
+
+p {
+    font-size: 1.2rem; /* Era 1.5rem */
+    margin-bottom: 2rem;
+    color: #cbd5e1;
+}
+
+button {
+    padding: 1rem 3rem;
+    font-size: 1.2rem; /* Era 1.5rem */
+    font-family: inherit;
+    font-weight: bold;
+    color: white;
+    background: linear-gradient(135deg, #8b5cf6, #6366f1);
+    border: none;
+    border-radius: 50px;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+    box-shadow: 0 0 20px rgba(139, 92, 246, 0.4);
+}
+
+button:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 30px rgba(139, 92, 246, 0.6);
+}
+
+button:active {
+    transform: scale(0.95);
+}
+
+.hud {
+    position: static;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    z-index: 5;
+    height: var(--hud-height);
+    padding: 0 15px; /* Un poco menos de padding para pantallas estrechas */
+}
+
+.hud-item {
+    background: var(--glass-bg);
+    padding: 0.5rem 1rem; /* Padding ajustado */
+    border-radius: 50px;
+    border: 1px solid var(--glass-border);
+    font-weight: bold;
+    font-size: 1rem; /* Un poco más pequeño para que no se desborde */
+    backdrop-filter: blur(4px);
+    white-space: nowrap; /* Evita que el texto se parta en dos líneas */
+}
