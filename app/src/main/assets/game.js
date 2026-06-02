@@ -64,14 +64,14 @@ function saveGameProgress(level, score) {
 class Paddle {
     constructor(game) {
         this.game = game;
-        this.width = 120;
+        this.width = 100; // Adjusted for Portrait (was 120)
         this.height = 20;
         this.x = game.width / 2 - this.width / 2;
         this.y = game.height - 40;
         this.speed = 0;
         this.maxSpeed = 8;
         this.color = '#8b5cf6';
-        this.baseWidth = 120;
+        this.baseWidth = 100; // Adjusted for Portrait (was 120)
         this.isInverted = false;
     }
 
@@ -242,7 +242,7 @@ class Block {
         this.game = game;
         this.x = x;
         this.y = y;
-        this.width = 60;
+        this.width = 55; // Adjusted for Portrait (was 60)
         this.height = 25;
         this.type = type;
         this.active = true;
@@ -519,8 +519,10 @@ class Game {
     constructor() {
         this.canvas = document.getElementById('gameCanvas');
         this.ctx = this.canvas.getContext('2d');
-        this.width = 800;
-        this.height = 600;
+        
+        // 9:16 Portrait Aspect Ratio (replaces landscape 800x600)
+        this.width = 540; 
+        this.height = 960;
         this.canvas.width = this.width;
         this.canvas.height = this.height;
 
@@ -698,7 +700,7 @@ class Game {
     }
 
     generateLevelLayout(level) {
-        const cols = 11;
+        const cols = 8; // Narrower grid columns (was 11)
         // Rows grow from 4 to 9 as level increases
         const rows = Math.min(9, 4 + Math.floor((level - 1) / 10));
         const layout = [];
@@ -739,25 +741,25 @@ class Game {
                     case 6: // X-Shape + Center lines (Cross)
                         shouldPlace = (c === r || c === cols - 1 - r || c === Math.floor(cols / 2) || r === Math.floor(rows / 2));
                         break;
-                    case 7: // Alien / Invader Shape
-                        if (r === 0) shouldPlace = (cSym === 2 || cSym === 4 || cSym === 5);
-                        else if (r === 1) shouldPlace = (cSym === 1 || cSym === 3 || cSym === 5);
-                        else if (r === 2) shouldPlace = (cSym >= 2 && cSym <= 5);
-                        else if (r === 3) shouldPlace = (cSym === 0 || cSym === 2 || cSym === 4 || cSym === 5);
-                        else if (r === 4) shouldPlace = (cSym === 0 || cSym === 5);
+                    case 7: // Alien / Invader Shape adapted to cols=8 (cSym from 0 to 3)
+                        if (r === 0) shouldPlace = (cSym === 1 || cSym === 3);
+                        else if (r === 1) shouldPlace = (cSym === 0 || cSym === 2);
+                        else if (r === 2) shouldPlace = (cSym >= 1 && cSym <= 3);
+                        else if (r === 3) shouldPlace = (cSym === 0 || cSym === 1 || cSym === 3);
+                        else if (r === 4) shouldPlace = (cSym === 0 || cSym === 3);
                         else shouldPlace = (cSym % 2 === 0);
                         break;
-                    case 8: // Shield / Emblem
-                        if (r === 0) shouldPlace = (cSym >= 1 && cSym <= 4);
-                        else if (r === 1) shouldPlace = (cSym >= 0 && cSym <= 5);
-                        else if (r === 2) shouldPlace = (cSym >= 0 && cSym <= 4);
-                        else if (r === 3) shouldPlace = (cSym >= 1 && cSym <= 3);
-                        else if (r === 4) shouldPlace = (cSym >= 2 && cSym <= 2);
+                    case 8: // Shield / Emblem adapted to cols=8
+                        if (r === 0) shouldPlace = (cSym >= 1 && cSym <= 3);
+                        else if (r === 1) shouldPlace = (cSym >= 0 && cSym <= 3);
+                        else if (r === 2) shouldPlace = (cSym >= 0 && cSym <= 2);
+                        else if (r === 3) shouldPlace = (cSym >= 1 && cSym <= 2);
+                        else if (r === 4) shouldPlace = (cSym === 2);
                         else shouldPlace = false;
                         break;
-                    case 9: // Columns of rings
+                    case 9: // Columns of rings adapted to cols=8
                         shouldPlace = (r === 0 || r === 2 || r === 4) && (cSym % 2 === 0);
-                        if (r === 1 || r === 3) shouldPlace = (cSym === 0 || cSym === 5);
+                        if (r === 1 || r === 3) shouldPlace = (cSym === 0 || cSym === 3);
                         break;
                 }
                 layout[r][c] = shouldPlace;
@@ -827,12 +829,12 @@ class Game {
 
         const { rows, cols, layout } = this.generateLevelLayout(level);
         const padding = 6;
-        const blockWidth = 60;
+        const blockWidth = 55; // Adjusted for Portrait
         const blockHeight = 25;
         
         const totalGridWidth = cols * blockWidth + (cols - 1) * padding;
         const offsetX = (this.width - totalGridWidth) / 2;
-        const offsetY = 60;
+        const offsetY = 80; // Adjusted lower to account for safe area top padding
 
         for (let r = 0; r < rows; r++) {
             for (let c = 0; c < cols; c++) {

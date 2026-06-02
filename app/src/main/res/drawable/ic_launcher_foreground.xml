@@ -1,30 +1,163 @@
+<?xml version="1.0" encoding="utf-8"?>
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:aapt="http://schemas.android.com/aapt"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <path android:pathData="M31,63.928c0,0 6.4,-11 12.1,-13.1c7.2,-2.6 26,-1.4 26,-1.4l38.1,38.1L107,108.928l-32,-1L31,63.928z">
-        <aapt:attr name="android:fillColor">
-            <gradient
-                android:endX="85.84757"
-                android:endY="92.4963"
-                android:startX="42.9492"
-                android:startY="49.59793"
-                android:type="linear">
-                <item
-                    android:color="#44000000"
-                    android:offset="0.0" />
-                <item
-                    android:color="#00000000"
-                    android:offset="1.0" />
-            </gradient>
-        </aapt:attr>
-    </path>
+
+    <!-- ========================================== -->
+    <!--          LADRILLOS SUPERIORES DE NEÓN      -->
+    <!-- ========================================== -->
+
+    <!-- Ladrillo Izquierdo (Cian) -->
+    <!-- Resplandor exterior -->
     <path
-        android:fillColor="#FFFFFF"
-        android:fillType="nonZero"
-        android:pathData="M65.3,45.828l3.8,-6.6c0.2,-0.4 0.1,-0.9 -0.3,-1.1c-0.4,-0.2 -0.9,-0.1 -1.1,0.3l-3.9,6.7c-6.3,-2.8 -13.4,-2.8 -19.7,0l-3.9,-6.7c-0.2,-0.4 -0.7,-0.5 -1.1,-0.3C38.8,38.328 38.7,38.828 38.9,39.228l3.8,6.6C36.2,49.428 31.7,56.028 31,63.928h46C76.3,56.028 71.8,49.428 65.3,45.828zM43.4,57.328c-0.8,0 -1.5,-0.5 -1.8,-1.2c-0.3,-0.7 -0.1,-1.5 0.4,-2.1c0.5,-0.5 1.4,-0.7 2.1,-0.4c0.7,0.3 1.2,1 1.2,1.8C45.3,56.528 44.5,57.328 43.4,57.328L43.4,57.328zM64.6,57.328c-0.8,0 -1.5,-0.5 -1.8,-1.2s-0.1,-1.5 0.4,-2.1c0.5,-0.5 1.4,-0.7 2.1,-0.4c0.7,0.3 1.2,1 1.2,1.8C66.5,56.528 65.6,57.328 64.6,57.328L64.6,57.328z"
-        android:strokeWidth="1"
-        android:strokeColor="#00000000" />
+        android:strokeColor="#3306b6d4"
+        android:strokeWidth="5"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M27,24 H47 C48.5,24 48.5,29 47,29 H27 C25.5,29 25.5,24 27,24 Z" />
+    <!-- Trazado de color cian brillante -->
+    <path
+        android:strokeColor="#ff06b6d4"
+        android:strokeWidth="1.2"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M27,24 H47 C48.5,24 48.5,29 47,29 H27 C25.5,29 25.5,24 27,24 Z" />
+    <!-- Relleno translúcido -->
+    <path
+        android:fillColor="#1506b6d4"
+        android:pathData="M27,24 H47 C48.5,24 48.5,29 47,29 H27 C25.5,29 25.5,24 27,24 Z" />
+
+    <!-- Ladrillo Derecho (Magenta) -->
+    <!-- Resplandor exterior -->
+    <path
+        android:strokeColor="#33ec4899"
+        android:strokeWidth="5"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M61,24 H81 C82.5,24 82.5,29 81,29 H61 C59.5,29 59.5,24 61,24 Z" />
+    <!-- Trazado de color magenta brillante -->
+    <path
+        android:strokeColor="#ffec4899"
+        android:strokeWidth="1.2"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M61,24 H81 C82.5,24 82.5,29 81,29 H61 C59.5,29 59.5,24 61,24 Z" />
+    <!-- Relleno translúcido -->
+    <path
+        android:fillColor="#15ec4899"
+        android:pathData="M61,24 H81 C82.5,24 82.5,29 81,29 H61 C59.5,29 59.5,24 61,24 Z" />
+
+    <!-- Ladrillo Central (Amarillo) -->
+    <!-- Resplandor exterior -->
+    <path
+        android:strokeColor="#33eab308"
+        android:strokeWidth="5"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M44,35 H64 C65.5,35 65.5,40 64,40 H44 C42.5,40 42.5,35 44,35 Z" />
+    <!-- Trazado de color amarillo brillante -->
+    <path
+        android:strokeColor="#ffeab308"
+        android:strokeWidth="1.2"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M44,35 H64 C65.5,35 65.5,40 64,40 H44 C42.5,40 42.5,35 44,35 Z" />
+    <!-- Relleno translúcido -->
+    <path
+        android:fillColor="#15eab308"
+        android:pathData="M44,35 H64 C65.5,35 65.5,40 64,40 H44 C42.5,40 42.5,35 44,35 Z" />
+
+
+    <!-- ========================================== -->
+    <!--        PELOTA EMOJI (😎) Y SUS RESPLANDORES -->
+    <!-- ========================================== -->
+
+    <!-- Halo de luz alrededor de la pelota emoji -->
+    <path
+        android:fillColor="#1bfacc15"
+        android:pathData="M54,53m-15,0a15,15 0 1,1 30,0a15,15 0 1,1 -30,0" />
+
+    <!-- Estela de movimiento neón azul que sube desde el paddle -->
+    <path
+        android:strokeColor="#3300f2ff"
+        android:strokeWidth="3.5"
+        android:strokeLineCap="round"
+        android:pathData="M54,71 L54,61" />
+    <path
+        android:strokeColor="#ff00f2ff"
+        android:strokeWidth="1.2"
+        android:strokeLineCap="round"
+        android:pathData="M54,71 L54,63" />
+
+    <!-- Cuerpo principal de la pelota emoji (Amarillo) -->
+    <path
+        android:fillColor="#facc15"
+        android:pathData="M54,53m-11,0a11,11 0 1,1 22,0a11,11 0 1,1 -22,0" />
+    <!-- Borde de sombra naranja para relieve de la pelota -->
+    <path
+        android:strokeColor="#ea580c"
+        android:strokeWidth="1.0"
+        android:pathData="M54,53m-11,0a11,11 0 1,1 22,0a11,11 0 1,1 -22,0" />
+
+    <!-- Gafas de Sol - Lente Izquierda -->
+    <path
+        android:fillColor="#0f172a"
+        android:pathData="M47,51.5 C46.5,53.5 48.5,55 51.5,54.5 C52,53 51.5,51.5 47,51.5 Z" />
+    <!-- Gafas de Sol - Lente Derecha -->
+    <path
+        android:fillColor="#0f172a"
+        android:pathData="M61,51.5 C61.5,53.5 59.5,55 56.5,54.5 C56,53 56.5,51.5 61,51.5 Z" />
+    <!-- Gafas de Sol - Montura y Puente -->
+    <path
+        android:strokeColor="#0f172a"
+        android:strokeWidth="1.4"
+        android:strokeLineCap="round"
+        android:pathData="M44.5,50.5 Q54,48.5 63.5,50.5" />
+    <!-- Gafas de Sol - Brillo en Lente Izquierda -->
+    <path
+        android:strokeColor="#ffffff"
+        android:strokeWidth="0.7"
+        android:pathData="M48,52 L49.5,53" />
+    <!-- Gafas de Sol - Brillo en Lente Derecha -->
+    <path
+        android:strokeColor="#ffffff"
+        android:strokeWidth="0.7"
+        android:pathData="M57.5,52 L59,53" />
+
+    <!-- Sonrisa del Emoji -->
+    <path
+        android:strokeColor="#0f172a"
+        android:strokeWidth="1.8"
+        android:strokeLineCap="round"
+        android:pathData="M49,58.5 Q54,62 59,58.5" />
+
+
+    <!-- ========================================== -->
+    <!--             PADDLE INFERIOR DE NEÓN        -->
+    <!-- ========================================== -->
+
+    <!-- Resplandor exterior (Morado) -->
+    <path
+        android:strokeColor="#33a855f7"
+        android:strokeWidth="6"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M36,75 H72 C74.5,75 74.5,80 72,80 H36 C33.5,80 33.5,75 36,75 Z" />
+    <!-- Barra principal morada de neón -->
+    <path
+        android:strokeColor="#ffa855f7"
+        android:strokeWidth="2"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M36,75 H72 C74.5,75 74.5,80 72,80 H36 C33.5,80 33.5,75 36,75 Z" />
+    <!-- Núcleo de luz blanca brillante interna -->
+    <path
+        android:strokeColor="#ffffff"
+        android:strokeWidth="0.8"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M37,75.5 H71 C72.5,75.5 72.5,79.5 71,79.5 H37 C35.5,79.5 35.5,75.5 37,75.5 Z" />
+
 </vector>
