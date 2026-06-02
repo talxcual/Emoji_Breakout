@@ -11,34 +11,53 @@
 <body>
 <div class="game-container">
 
-    <!-- =============================================================== -->
-    <!-- CAMBIO: El HUD (barra de estado) ahora está aquí, al principio -->
-    <!-- del contenedor para que ocupe el espacio superior.          -->
-    <!-- =============================================================== -->
     <div class="hud">
         <div class="hud-item">Nivel: <span id="level-display">1</span></div>
         <div class="hud-item">Puntos: <span id="score-display">0</span></div>
         <div class="hud-item">Vidas: <span id="lives-display">❤️❤️❤️</span></div>
+        <div class="hud-controls">
+            <button class="hud-btn" id="mute-btn" title="Silenciar">🔊</button>
+            <button class="hud-btn" id="pause-btn" title="Pausar">⏸️</button>
+        </div>
     </div>
 
-    <!-- El Canvas ahora viene después del HUD -->
+    <!-- El Canvas del Juego -->
     <canvas id="gameCanvas"></canvas>
 
-    <!-- Los menús overlay pueden ir en cualquier lugar dentro del contenedor, -->
-    <!-- ya que se posicionan de forma absoluta. Los dejo aquí por orden. -->
+    <!-- Pantalla de Inicio (Main Menu) -->
     <div class="ui-overlay" id="start-screen">
         <h1>EMOJI BREAKOUT</h1>
-        <p>Usa el mouse o el dedo para mover la barra</p>
+        <p class="record-text">RÉCORD: <span id="high-score-display">0</span></p>
+        <p class="subtitle">Usa el mouse o el dedo para mover la barra</p>
         <button id="start-btn">JUGAR</button>
     </div>
+
+    <!-- Pantalla de Pausa -->
+    <div class="ui-overlay hidden" id="pause-screen">
+        <h1>JUEGO PAUSADO</h1>
+        <button id="resume-btn" class="menu-btn">REANUDAR</button>
+        <button id="restart-pause-btn" class="menu-btn">REINICIAR</button>
+        <button id="quit-btn" class="menu-btn">SALIR</button>
+    </div>
+
+    <!-- Pantalla de Nivel Completado -->
+    <div class="ui-overlay hidden" id="level-cleared-screen">
+        <h1>¡NIVEL COMPLETADO!</h1>
+        <p>Puntuación: <span id="cleared-score">0</span></p>
+        <button id="next-level-btn">SIGUIENTE NIVEL</button>
+    </div>
+
+    <!-- Pantalla de Game Over -->
     <div class="ui-overlay hidden" id="game-over-screen">
         <h1>GAME OVER</h1>
         <p>Puntuación: <span id="final-score">0</span></p>
         <button id="restart-btn">REINTENTAR</button>
     </div>
+
+    <!-- Pantalla de Victoria Final -->
     <div class="ui-overlay hidden" id="win-screen">
-        <h1>¡VICTORIA!</h1>
-        <p>¡Has completado los 10 niveles!</p>
+        <h1>¡VICTORIA TOTAL!</h1>
+        <p>¡Has completado los 50 niveles!</p>
         <button id="play-again-btn">JUGAR DE NUEVO</button>
     </div>
 
@@ -52,4 +71,3 @@
 </script>
 </body>
 </html>
-

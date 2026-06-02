@@ -32,8 +32,11 @@ class MainActivity : AppCompatActivity() {
         // 2. Permitir acceso a archivos locales (para cargar CSS/JS desde HTML)
         webSettings.allowFileAccess = true
 
-        // 3. Habilitar el almacenamiento DOM (si lo necesitaras en el futuro)
+        // 3. Habilitar el almacenamiento DOM
         webSettings.domStorageEnabled = true
+
+        // 4. Registrar puente de interfaz Javascript para comunicarse con Kotlin nativo
+        webView.addJavascriptInterface(GameInterface(this), "AndroidInterface")
 
         // Carga el archivo principal de tu juego desde la carpeta 'assets'
         webView.loadUrl("file:///android_asset/index.html")
@@ -50,5 +53,15 @@ class MainActivity : AppCompatActivity() {
                     or View.SYSTEM_UI_FLAG_FULLSCREEN
                     or View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY)
         }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        SoundManager.getInstance(this).pauseMusic()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        SoundManager.getInstance(this).startMusic()
     }
 }
