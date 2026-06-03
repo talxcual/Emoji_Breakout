@@ -3879,7 +3879,7 @@ async function cargarRankingGlobal() {
                 tr.innerHTML = `
                     <td>${medal}</td>
                     <td>${data.name || 'Jugador'}</td>
-                    <td>-</td>
+                    <td>${data.profilePic ? `<img src="${data.profilePic}" style="width: 30px; height: 30px; border-radius: 50%;">` : "-"}</td>
                     <td>${data.score || 0}</td>
                 `;
                 tbody.appendChild(tr);
