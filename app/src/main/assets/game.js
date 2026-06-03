@@ -3857,8 +3857,8 @@ async function cargarRankingGlobal() {
 
     try {
         const db = firebase.database();
-        // REGLA ESTRICTA: Leer EXCLUSIVAMENTE de 'ranking_emoji_breakout'
-        const snap = await db.ref('ranking_emoji_breakout').orderByChild('score').limitToLast(50).once('value');
+        // REGLA ESTRICTA: Leer EXCLUSIVAMENTE de 'leaderboard'
+        const snap = await db.ref('leaderboard').orderByChild('score').limitToLast(50).once('value');
         
         if (snap.exists()) {
             let scores = [];
@@ -3904,13 +3904,13 @@ async function guardarRécordGlobal(nickname, puntaje) {
             localStorage.setItem('eb_uid', uid);
         }
         
-        // REGLA ESTRICTA: Escribir EXCLUSIVAMENTE en 'ranking_emoji_breakout'
-        await db.ref('ranking_emoji_breakout/' + uid).set({
+        // REGLA ESTRICTA: Escribir EXCLUSIVAMENTE en 'leaderboard'
+        await db.ref('leaderboard/' + uid).set({
             name: nickname,
             score: puntaje,
             timestamp: firebase.database.ServerValue.TIMESTAMP
         });
-        console.log("Récord guardado exitosamente en Firebase (ranking_emoji_breakout).");
+        console.log("Récord guardado exitosamente en Firebase (leaderboard).");
     } catch (e) {
         console.error("Error al guardar récord en Firebase:", e);
     }
