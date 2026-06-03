@@ -30,6 +30,12 @@ interface ScoreRepository {
         onSuccess: (List<LeaderboardEntry>) -> Unit,
         onFailure: (Exception) -> Unit
     )
+
+    fun getUserHighScore(
+        uid: String,
+        onSuccess: (LeaderboardEntry?) -> Unit,
+        onFailure: (Exception) -> Unit
+    )
 }
 
 class FirebaseScoreRepository(private val context: Context) : ScoreRepository {
@@ -51,6 +57,32 @@ class FirebaseScoreRepository(private val context: Context) : ScoreRepository {
             } catch (ex: Exception) {
                 Log.e(TAG, "Error al inicializar Firebase de respaldo: ${ex.message}")
             }
+        }
+    }
+
+    override fun getUserHighScore(
+        uid: String,
+        onSuccess: (LeaderboardEntry?) -> Unit,
+        onFailure: (Exception) -> Unit
+    ) {
+        try {
+            val database = FirebaseDatabase.getInstance()
+            val userScoreRef = database.getReference("leaderboard").child(uid)
+            userScoreRef.get()
+                .addOnSuccessListener { snapshot ->
+                    if (snapshot.exists()) {
+                        val entry = snapshot.getValue(LeaderboardEntry::class.java)
+                        onSuccess(entry)
+                    } else {
+                        onSuccess(null)
+                    }
+                }
+                .addOnFailureListener { e ->
+                    Log.e(TAG, "Error al obtener record de usuario de Firebase", e)
+                    onFailure(e)
+                }
+        } catch (e: Exception) {
+            onFailure(e)
         }
     }
 

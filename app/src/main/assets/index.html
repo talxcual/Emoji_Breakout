@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Emoji Breakout</title>
     <link rel="stylesheet" href="style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Righteous&display=swap" rel="stylesheet">
     <link rel="manifest" href="manifest.json">
 </head>
 <body>
@@ -31,7 +31,7 @@
 
     <!-- Zona Inferior de Información (Safe Area Push) -->
     <div class="bottom-bar">
-        <span class="bottom-record-text">RÉCORD ACTUAL: <span id="bottom-high-score-display">0</span></span>
+        <span class="bottom-record-text">🏆 RÉCORD ACTUAL: <span id="bottom-high-score-display">0</span></span>
     </div>
 
     <!-- Pantalla de Inicio (Main Menu) -->
@@ -39,43 +39,81 @@
         <!-- Regalo Diario -->
         <button id="daily-gift-btn" class="daily-gift-btn" title="Reclamar regalo diario de 50 monedas">🎁</button>
 
-        <h1>EMOJI BREAKOUT</h1>
-        <p class="record-text">RÉCORD: <span id="high-score-display">0</span></p>
-        <button id="resume-session-btn" class="menu-btn hidden">CONTINUAR</button>
-        <button id="start-btn" class="menu-btn">JUGAR</button>
-        <button id="level-select-btn" class="menu-btn">NIVELES</button>
-        <button id="leaderboard-btn" class="menu-btn">RANKING</button>
-        <button id="profile-btn" class="menu-btn">PERFIL</button>
-        <button id="shop-btn" class="menu-btn">TIENDA</button>
+        <h1 class="titulo-arcade logo-bounce">EMOJI<br>BREAKOUT</h1>
+        <p class="record-text">🏆 RÉCORD: <span id="high-score-display">0</span></p>
+        <button id="resume-session-btn" class="menu-btn hidden">🚀 CONTINUAR</button>
+        <button id="start-btn" class="menu-btn">🎮 JUGAR 🕹️</button>
+        <button id="level-select-btn" class="menu-btn">🗺️ NIVELES</button>
+        <button id="leaderboard-btn" class="menu-btn">🏆 RANKING</button>
+        <button id="profile-btn" class="menu-btn">👤 PERFIL</button>
+        <button id="shop-btn" class="menu-btn">🏪 TIENDA</button>
+        <button id="settings-btn" class="menu-btn">⚙️ AJUSTES</button>
     </div>
 
     <!-- Pantalla de Pausa -->
     <div class="ui-overlay hidden" id="pause-screen">
-        <h1>JUEGO PAUSADO</h1>
+        <h1 class="titulo-arcade">JUEGO PAUSADO</h1>
         <button id="resume-btn" class="menu-btn">REANUDAR</button>
+        <button id="pause-settings-btn" class="menu-btn">AJUSTES</button>
         <button id="pause-shop-btn" class="menu-btn">TIENDA</button>
         <button id="restart-pause-btn" class="menu-btn">REINICIAR</button>
         <button id="quit-btn" class="menu-btn">MENÚ PRINCIPAL</button>
     </div>
 
+    <!-- Pantalla de Ajustes -->
+    <div class="ui-overlay hidden" id="settings-screen">
+        <h1 class="titulo-arcade">AJUSTES</h1>
+        <div class="settings-container">
+            <div class="settings-row">
+                <span class="settings-label">Efectos Visuales (Neón)</span>
+                <label class="switch">
+                    <input type="checkbox" id="neon-effects-toggle" checked>
+                    <span class="slider round"></span>
+                </label>
+            </div>
+            <div class="settings-row" id="sound-submenu-btn" style="cursor: pointer;">
+                <span class="settings-label">Ajustes de Sonido</span>
+                <span id="sound-submenu-arrow">▶</span>
+            </div>
+            <div id="sound-settings-panel" class="hidden">
+                <div class="volume-row">
+                    <div class="volume-info">
+                        <span>Música</span>
+                        <span id="music-volume-val">50%</span>
+                    </div>
+                    <input type="range" id="music-volume-slider" min="0" max="100" value="50" class="volume-slider">
+                </div>
+                <div class="volume-row">
+                    <div class="volume-info">
+                        <span>Efectos</span>
+                        <span id="sfx-volume-val">80%</span>
+                    </div>
+                    <input type="range" id="sfx-volume-slider" min="0" max="100" value="80" class="volume-slider">
+                </div>
+            </div>
+        </div>
+        <button id="close-settings-btn" class="menu-btn" style="margin-top: 30px;">VOLVER</button>
+    </div>
+
     <!-- Pantalla de Nivel Completado -->
     <div class="ui-overlay hidden" id="level-cleared-screen">
-        <h1>¡NIVEL COMPLETADO!</h1>
+        <h1 class="titulo-arcade">¡NIVEL COMPLETADO!</h1>
         <p>Puntuación: <span id="cleared-score">0</span></p>
         <button id="next-level-btn">SIGUIENTE NIVEL</button>
     </div>
 
     <!-- Pantalla de Game Over -->
     <div class="ui-overlay hidden" id="game-over-screen">
-        <h1>GAME OVER</h1>
+        <h1 class="titulo-arcade">GAME OVER</h1>
         <p>Puntuación: <span id="final-score">0</span></p>
+        <p id="game-over-quote" style="font-style: italic; font-size: 1rem; color: #fb7185; margin-top: -10px; margin-bottom: 20px; font-family: 'Righteous', sans-serif;"></p>
         <button id="restart-btn" class="menu-btn">REINTENTAR</button>
         <button id="game-over-quit-btn" class="menu-btn">MENÚ PRINCIPAL</button>
     </div>
 
     <!-- Pantalla de Victoria Final -->
     <div class="ui-overlay hidden" id="win-screen">
-        <h1>¡VICTORIA TOTAL!</h1>
+        <h1 class="titulo-arcade">¡VICTORIA TOTAL!</h1>
         <p>¡Has completado los 50 niveles!</p>
         <button id="play-again-btn" class="menu-btn">JUGAR DE NUEVO</button>
         <button id="win-quit-btn" class="menu-btn">MENÚ PRINCIPAL</button>
@@ -83,7 +121,7 @@
 
     <!-- Modal de Nuevo Récord (Nickname Prompt) -->
     <div class="ui-overlay hidden" id="nickname-modal">
-        <h1>¡NUEVO RÉCORD!</h1>
+        <h1 class="titulo-arcade">¡NUEVO RÉCORD!</h1>
         <p>Introduce tu nombre para el Ranking:</p>
         <input type="text" id="nickname-input" placeholder="Tu Apodo" maxlength="15">
         <button id="save-nickname-btn">GUARDAR</button>
@@ -91,7 +129,7 @@
 
     <!-- Pantalla de Leaderboard (Ranking Global) -->
     <div class="ui-overlay hidden" id="leaderboard-screen">
-        <h1>RANKING GLOBAL</h1>
+        <h1 class="titulo-arcade">RANKING GLOBAL</h1>
         <div class="leaderboard-container">
             <table class="leaderboard-table">
                 <thead>
@@ -112,7 +150,7 @@
 
     <!-- Pantalla de Perfil de Usuario (Login / Profile Customization) -->
     <div class="ui-overlay hidden" id="profile-screen">
-        <h1>MI PERFIL</h1>
+        <h1 class="titulo-arcade">MI PERFIL</h1>
         <div class="profile-card">
             <div class="profile-avatar-container">
                 <img id="profile-avatar-preview" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'><circle cx='40' cy='40' r='40' fill='%238b5cf6'/><text x='40' y='50' font-size='32' text-anchor='middle' fill='white'>👤</text></svg>" alt="Avatar">
@@ -141,26 +179,42 @@
         <button id="close-profile-btn" class="menu-btn">VOLVER</button>
     </div>
     
-    <!-- Pantalla de Tienda de Buffs -->
+    <!-- Pantalla de Tienda de Buffs y Skins -->
     <div class="ui-overlay hidden" id="shop-screen">
-        <h1>TIENDA DE BUFFS</h1>
+        <h1 class="titulo-arcade" style="font-size: 2.2rem; margin-bottom: 0.5rem; filter: drop-shadow(0px 0px 15px rgba(251, 191, 36, 0.4));">TIENDA</h1>
         <p class="record-text" style="color: #fbbf24; text-shadow: 0 0 15px rgba(251, 191, 36, 0.4); margin-bottom: 1.5rem;">
             SALDO: <span id="shop-coins-display">0</span> 🪙
         </p>
-        <div class="shop-container">
-            <div class="shop-item">
-                <div class="shop-item-info">
-                    <span class="shop-item-name">Puntuación x2 (15s)</span>
-                    <span class="shop-item-desc">Duplica los puntos obtenidos durante 15 segundos.</span>
+        
+        <div class="tab-container" style="display: flex; gap: 10px; margin-bottom: 15px;">
+            <button id="tab-shop-buffs-btn" class="tab-btn active-tab" style="padding: 0.5rem 1.5rem; font-size: 1rem;">BUFFS</button>
+            <button id="tab-shop-skins-btn" class="tab-btn" style="padding: 0.5rem 1.5rem; font-size: 1rem;">ASPECTOS</button>
+        </div>
+
+        <div id="panel-shop-buffs" class="scroll-panel" style="width: 100%;">
+            <div class="shop-container">
+                <div class="shop-item buff-card">
+                    <div class="buff-icon">🔥</div>
+                    <div class="shop-item-info">
+                        <span class="shop-item-name">FIEBRE DE PUNTOS</span>
+                        <span class="shop-item-desc">¡Dobla el valor de cada bloque destruido durante 15s!</span>
+                    </div>
+                    <button id="buy-double-score-btn" class="buy-btn">50 🪙</button>
                 </div>
-                <button id="buy-double-score-btn" class="buy-btn">50 🪙</button>
+                <div class="shop-item buff-card">
+                    <div class="buff-icon">⚡</div>
+                    <div class="shop-item-info">
+                        <span class="shop-item-name">RAQUETA EXPLOSIVA</span>
+                        <span class="shop-item-desc">Barra súper gigante o proyectiles de fuego en nivel 1.</span>
+                    </div>
+                    <button id="buy-super-power-btn" class="buy-btn">100 🪙</button>
+                </div>
             </div>
-            <div class="shop-item">
-                <div class="shop-item-info">
-                    <span class="shop-item-name">Super Poder Inicial</span>
-                    <span class="shop-item-desc">Nivel 1 con Paddle Grande o Bola de Fuego.</span>
-                </div>
-                <button id="buy-super-power-btn" class="buy-btn">100 🪙</button>
+        </div>
+
+        <div id="panel-shop-skins" class="scroll-panel hidden" style="width: 100%;">
+            <div class="shop-container" id="shop-ball-skins-container">
+                <!-- Se cargará dinámicamente desde game.js -->
             </div>
         </div>
         <button id="close-shop-btn" class="menu-btn" style="margin-top: 20px;">VOLVER</button>
@@ -181,7 +235,7 @@
 
     <!-- Modal de Comprar Vida Extra -->
     <div class="ui-overlay hidden" id="extra-life-modal">
-        <h1>¿CONTINUAR?</h1>
+        <h1 class="titulo-arcade">¿CONTINUAR?</h1>
         <p>Te has quedado sin vidas.</p>
         <p style="color: #fbbf24; font-size: 1.4rem; font-weight: bold; text-shadow: 0 0 15px rgba(251, 191, 36, 0.4); margin-bottom: 1.5rem;">
             ¿Deseas comprar 1 vida extra por 10 🪙?
@@ -198,7 +252,7 @@
 
     <!-- Pantalla de Selector de Niveles y Skins -->
     <div class="ui-overlay hidden" id="level-select-screen">
-        <h1 style="font-size: 2.2rem; margin-bottom: 0.5rem; text-shadow: 0 0 15px rgba(139, 92, 246, 0.4);">SELECCIONAR NIVEL</h1>
+        <h1 class="titulo-arcade" style="font-size: 2.2rem; margin-bottom: 0.5rem; filter: drop-shadow(0px 0px 15px rgba(139, 92, 246, 0.4));">SELECCIONAR NIVEL</h1>
         
         <div class="tab-container" style="display: flex; gap: 10px; margin-bottom: 15px;">
             <button id="tab-levels-btn" class="tab-btn active-tab" style="padding: 0.5rem 1.5rem; font-size: 1rem;">NIVELES</button>
@@ -218,7 +272,7 @@
 
     <!-- Modal de Cofre de Recompensa -->
     <div class="ui-overlay hidden" id="chest-modal" style="z-index: 20;">
-        <h1 id="chest-modal-title">¡RACHA PERFECTA!</h1>
+        <h1 class="titulo-arcade" id="chest-modal-title">¡RACHA PERFECTA!</h1>
         <div id="chest-animation-container" style="font-size: 6rem; margin: 1.5rem 0; transition: transform 0.5s;">
             📦
         </div>

@@ -1,3 +1,20 @@
+// --- DOM Cache Helpers to avoid layout thrashing and DOM search bottlenecks ---
+const domCache = {};
+function getCachedElement(id) {
+    if (!domCache[id]) {
+        domCache[id] = document.getElementById(id);
+    }
+    return domCache[id];
+}
+
+const queryCache = {};
+function getCachedQuery(selector) {
+    if (!queryCache[selector]) {
+        queryCache[selector] = document.querySelector(selector);
+    }
+    return queryCache[selector];
+}
+
 // --- Android Native Interface Bridge Helpers ---
 function playSFX(name) {
     if (window.AndroidInterface) {
@@ -253,13 +270,133 @@ function saveEquippedSkin(skinId) {
     localStorage.setItem('player_equipped_skin', skinId);
 }
 
+function getOwnedBallSkins() {
+    if (window.AndroidInterface && window.AndroidInterface.loadInventory) {
+        try {
+            return JSON.parse(window.AndroidInterface.loadInventory());
+        } catch (e) {
+            console.error("Error calling loadInventory:", e);
+        }
+    }
+    let skins = localStorage.getItem('player_owned_ball_skins');
+    return skins ? JSON.parse(skins) : ['default'];
+}
+
+function saveOwnedBallSkins(skinsArray) {
+    const jsonStr = JSON.stringify(skinsArray);
+    if (window.AndroidInterface && window.AndroidInterface.saveInventory) {
+        try {
+            window.AndroidInterface.saveInventory(jsonStr);
+            return;
+        } catch (e) {
+            console.error("Error calling saveInventory:", e);
+        }
+    }
+    localStorage.setItem('player_owned_ball_skins', jsonStr);
+}
+
+function getEquippedBallSkin() {
+    if (window.AndroidInterface && window.AndroidInterface.getEquippedBallSkin) {
+        try {
+            return window.AndroidInterface.getEquippedBallSkin();
+        } catch (e) {
+            console.error("Error calling getEquippedBallSkin:", e);
+        }
+    }
+    return localStorage.getItem('player_equipped_ball_skin') || 'default';
+}
+
+function saveEquippedBallSkin(skinId) {
+    if (window.AndroidInterface && window.AndroidInterface.saveEquippedBallSkin) {
+        try {
+            window.AndroidInterface.saveEquippedBallSkin(skinId);
+            return;
+        } catch (e) {
+            console.error("Error calling saveEquippedBallSkin:", e);
+        }
+    }
+    localStorage.setItem('player_equipped_ball_skin', skinId);
+}
+
+function saveSettings(highGraphics) {
+    if (window.AndroidInterface && window.AndroidInterface.saveSettings) {
+        try {
+            window.AndroidInterface.saveSettings(highGraphics);
+            return;
+        } catch (e) {
+            console.error("Error calling saveSettings:", e);
+        }
+    }
+    localStorage.setItem('high_graphics_enabled', highGraphics ? 'true' : 'false');
+}
+
+function loadSettings() {
+    if (window.AndroidInterface && window.AndroidInterface.loadSettings) {
+        try {
+            return window.AndroidInterface.loadSettings();
+        } catch (e) {
+            console.error("Error calling loadSettings:", e);
+        }
+    }
+    let val = localStorage.getItem('high_graphics_enabled');
+    return val === null ? true : (val === 'true');
+}
+
+function getMusicVolume() {
+    if (window.AndroidInterface && window.AndroidInterface.getMusicVolume) {
+        try {
+            return window.AndroidInterface.getMusicVolume();
+        } catch (e) {
+            console.error("Error calling getMusicVolume:", e);
+        }
+    }
+    let val = localStorage.getItem('music_volume');
+    return val === null ? 0.5 : parseFloat(val);
+}
+
+function saveMusicVolume(volume) {
+    if (window.AndroidInterface && window.AndroidInterface.setMusicVolume) {
+        try {
+            window.AndroidInterface.setMusicVolume(volume);
+            return;
+        } catch (e) {
+            console.error("Error calling setMusicVolume:", e);
+        }
+    }
+    localStorage.setItem('music_volume', volume.toString());
+}
+
+function getSfxVolume() {
+    if (window.AndroidInterface && window.AndroidInterface.getSfxVolume) {
+        try {
+            return window.AndroidInterface.getSfxVolume();
+        } catch (e) {
+            console.error("Error calling getSfxVolume:", e);
+        }
+    }
+    let val = localStorage.getItem('sfx_volume');
+    return val === null ? 0.8 : parseFloat(val);
+}
+
+function saveSfxVolume(volume) {
+    if (window.AndroidInterface && window.AndroidInterface.setSfxVolume) {
+        try {
+            window.AndroidInterface.setSfxVolume(volume);
+            return;
+        } catch (e) {
+            console.error("Error calling setSfxVolume:", e);
+        }
+    }
+    localStorage.setItem('sfx_volume', volume.toString());
+}
+
 class Paddle {
     constructor(game) {
         this.game = game;
         this.width = 100; // Adjusted for Portrait (was 120)
         this.height = 20;
         this.x = game.width / 2 - this.width / 2;
-        this.y = game.height - 40;
+        this.y = game.height - 90; // Sube la barra 50px (era game.height - 40) para resolver Fat Finger
         this.speed = 0;
         this.maxSpeed = 8;
         this.color = game.getEquippedSkinColor ? game.getEquippedSkinColor() : '#8b5cf6';
@@ -283,21 +420,25 @@ class Paddle {
     }
 
     draw(ctx) {
-        // Neon Glow effect
         const baseColor = this.isInverted ? '#dc2626' : (this.game.getEquippedSkinColor ? this.game.getEquippedSkinColor() : '#8b5cf6');
         ctx.fillStyle = baseColor;
-        ctx.shadowBlur = 15;
-        ctx.shadowColor = baseColor;
-        ctx.beginPath();
-        ctx.roundRect(this.x, this.y, this.width, this.height, 10);
-        ctx.fill();
-        ctx.shadowBlur = 0; // Reset shadow
+        
+        if (this.game.highGraphicsEnabled) {
+            ctx.shadowBlur = 15;
+            ctx.shadowColor = baseColor;
+            ctx.beginPath();
+            ctx.roundRect(this.x, this.y, this.width, this.height, 10);
+            ctx.fill();
+            ctx.shadowBlur = 0; // Reset shadow
 
-        // Shine effect
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.35)';
-        ctx.beginPath();
-        ctx.roundRect(this.x + 5, this.y + 2, this.width - 10, this.height / 2 - 2, 5);
-        ctx.fill();
+            // Shine effect
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.35)';
+            ctx.beginPath();
+            ctx.roundRect(this.x + 5, this.y + 2, this.width - 10, this.height / 2 - 2, 5);
+            ctx.fill();
+        } else {
+            ctx.fillRect(this.x, this.y, this.width, this.height);
+        }
     }
 }
 
@@ -316,11 +457,13 @@ class Ball {
         this.stretchY = 1.0;
         
         this.reset();
+        this.prevX = this.x;
+        this.prevY = this.y;
     }
 
     reset() {
         this.x = this.game.width / 2;
-        this.y = this.game.height - 60;
+        this.y = this.game.paddle.y - this.radius - 5;
         
         // Base speed in pixels per second
         // Progressively increases with level
@@ -338,10 +481,16 @@ class Ball {
         this.speedMultiplier = 1;
         this.damage = 1;
         this.isFireball = false;
-        this.emoji = '🏐';
+        
+        const skinId = this.game.equippedBallSkin || 'default';
+        const skin = this.game.ballSkinsDict && this.game.ballSkinsDict[skinId];
+        this.emoji = skin ? (Array.from(skin.emoji)[0] || '🏐') : '🏐';
         
         this.stretchX = 1.0;
         this.stretchY = 1.0;
+        
+        this.prevX = this.x;
+        this.prevY = this.y;
     }
 
     squash(horizontal = false) {
@@ -358,6 +507,8 @@ class Ball {
         const b = new Ball(this.game);
         b.x = this.x;
         b.y = this.y;
+        b.prevX = this.x;
+        b.prevY = this.y;
         b.speedMultiplier = this.speedMultiplier;
         b.damage = this.damage;
         b.isFireball = this.isFireball;
@@ -375,6 +526,9 @@ class Ball {
     }
 
     update(dt) {
+        this.prevX = this.x;
+        this.prevY = this.y;
+
         if (!this.active) {
             this.x = this.game.paddle.x + this.game.paddle.width / 2;
             this.y = this.game.paddle.y - this.radius - 5;
@@ -412,21 +566,64 @@ class Ball {
     }
 
     draw(ctx) {
-        ctx.save();
-        ctx.translate(this.x, this.y);
-        ctx.scale(this.stretchX, this.stretchY);
+        this.game.drawEmoji = this.emoji;
 
-        // Flash shadow effect on impact squeeze
-        if (Math.abs(this.stretchX - 1.0) > 0.15) {
-            ctx.shadowBlur = 12;
-            ctx.shadowColor = '#ffffff';
+        // Si está activo el parpadeo del Huevo de Pascua, rota emojis deportivos y mágicos
+        if (this.game.ballFlashTimer > 0) {
+            this.game.drawEmoji = this.game.flashEmojis[Math.floor(Date.now() / 80) % this.game.flashEmojis.length];
         }
 
-        ctx.font = `${this.size}px serif`;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(this.emoji, 0, 0);
-        ctx.restore();
+        this.game.skinId = this.game.equippedBallSkin || 'default';
+        this.game.skinImg = this.game.ballSkinImages && this.game.ballSkinImages[this.game.skinId];
+
+        if (this.game.highGraphicsEnabled) {
+            ctx.save();
+            ctx.translate(Math.floor(this.x), Math.floor(this.y));
+            ctx.scale(this.stretchX, this.stretchY);
+
+            // Flash shadow effect on impact squeeze
+            if (Math.abs(this.stretchX - 1.0) > 0.15) {
+                ctx.shadowBlur = 12;
+                ctx.shadowColor = '#ffffff';
+            } else if (this.game.ballFlashTimer > 0) {
+                ctx.shadowBlur = 22;
+                ctx.shadowColor = this.game.flashColors[Math.floor(Date.now() / 120) % this.game.flashColors.length];
+            }
+
+            if (this.game.skinImg && this.game.ballFlashTimer <= 0) {
+                const imgSize = this.size * 1.35;
+                const offset = -imgSize / 2;
+                ctx.save();
+                ctx.beginPath();
+                ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
+                ctx.clip();
+                ctx.drawImage(this.game.skinImg, Math.floor(offset), Math.floor(offset), imgSize, imgSize);
+                ctx.restore();
+            } else {
+                ctx.font = `${this.size}px serif`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(this.game.drawEmoji, 0, 0);
+            }
+            ctx.restore();
+        } else {
+            if (this.game.skinImg && this.game.ballFlashTimer <= 0) {
+                const imgSize = this.size * 1.35;
+                const offsetX = this.x - imgSize / 2;
+                const offsetY = this.y - imgSize / 2;
+                ctx.save();
+                ctx.beginPath();
+                ctx.arc(Math.floor(this.x), Math.floor(this.y), this.radius, 0, Math.PI * 2);
+                ctx.clip();
+                ctx.drawImage(this.game.skinImg, Math.floor(offsetX), Math.floor(offsetY), imgSize, imgSize);
+                ctx.restore();
+            } else {
+                ctx.font = `${this.size}px serif`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(this.game.drawEmoji, Math.floor(this.x), Math.floor(this.y));
+            }
+        }
     }
 }
 
@@ -442,6 +639,14 @@ class Block {
         this.maxHealth = health;
         this.health = health;
 
+        // Easter Egg: 2% de probabilidad de ser Alien o Monstruo (solo bloques destructibles simples)
+        this.isSecret = false;
+        if (health !== Infinity && health !== 3 && Math.random() < 0.02) {
+            this.isSecret = true;
+            this.maxHealth = 1;
+            this.health = 1;
+        }
+
         // Moving blocks mechanic (levels >= 20).
         // 25% of breakable blocks move horizontally in upper levels
         this.isMoving = (game.level >= 20 && health !== Infinity && (x + y) % 4 === 0);
@@ -454,23 +659,47 @@ class Block {
         if (this.health === Infinity) {
             this.color = '#475569'; // Dark Slate Gray (indestructible)
             this.emoji = '🪨';
-        } else if (this.health === 3) {
+            this.points = 0;
+            this.fruitType = 'stone';
+        } else if (this.isSecret) {
+            this.color = '#a855f7'; // Violeta neón
+            this.emoji = this.emoji || (Math.random() < 0.5 ? '👽' : '👾');
+            this.points = 100;
+            this.fruitType = 'secret';
+        } else if (this.maxHealth === 3) {
             this.color = '#0891b2'; // Cyan/Diamond (3 hits)
             this.emoji = '💎';
-        } else if (this.health === 2) {
-            this.color = '#ea580c'; // Dark orange (2 hits)
-            this.emoji = '🧱';
+            this.points = 30;
+            this.fruitType = 'diamond';
+        } else if (this.maxHealth === 2) {
+            this.color = '#ea580c'; // Naranja (2 hits)
+            this.emoji = '🍊';
+            this.points = 20;
+            this.fruitType = 'orange';
         } else {
-            // health = 1
-            const colors = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#3b82f6', '#a855f7', '#ec4899'];
-            this.color = colors[this.type % colors.length];
-            const emojis = ['❤️', '🍊', '🍋', '🍏', '⚽', '🍇', '🌸'];
-            this.emoji = emojis[this.type % emojis.length];
+            // maxHealth = 1: Frutas comunes asignadas determinísticamente por su tipo
+            const choice = this.type % 3;
+            if (choice === 0) {
+                this.color = '#ef4444'; // Rojo manzana
+                this.emoji = '🍎';
+                this.points = 10;
+                this.fruitType = 'apple';
+            } else if (choice === 1) {
+                this.color = '#eab308'; // Amarillo banana
+                this.emoji = '🍌';
+                this.points = 0; // Da monedas, no puntos
+                this.fruitType = 'banana';
+            } else {
+                this.color = '#22c55e'; // Verde sandía
+                this.emoji = '🍉';
+                this.points = 15;
+                this.fruitType = 'watermelon';
+            }
         }
     }
 
     onHit() {
-        this.updateAppearance();
+        // Mantiene el aspecto pero dibuja grietas visualmente
     }
 
     update(dt) {
@@ -491,45 +720,57 @@ class Block {
     draw(ctx) {
         if (!this.active) return;
 
-        // Draw block base with rounded rect and glow
-        ctx.fillStyle = this.color;
-        ctx.shadowBlur = 8;
-        ctx.shadowColor = this.color;
-        ctx.beginPath();
-        ctx.roundRect(this.x, this.y, this.width, this.height, 5);
-        ctx.fill();
-        ctx.shadowBlur = 0; // Reset glow
-
-        // Inner bevel/border
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.25)';
-        ctx.lineWidth = 1.5;
-        ctx.stroke();
-
-        // Draw emoji inside block
-        ctx.font = "16px serif";
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(this.emoji, this.x + this.width / 2, this.y + this.height / 2);
-
-        // Draw cracks for damaged blocks
-        if (this.health === 2 && this.maxHealth === 3) {
-            // Mild crack
-            ctx.strokeStyle = 'rgba(0, 0, 0, 0.4)';
-            ctx.lineWidth = 2;
+        if (this.game.highGraphicsEnabled) {
+            // Draw block base with rounded rect and glow
+            ctx.fillStyle = this.color;
+            ctx.shadowBlur = 8;
+            ctx.shadowColor = this.color;
             ctx.beginPath();
-            ctx.moveTo(this.x + 8, this.y + 6);
-            ctx.lineTo(this.x + 20, this.y + 18);
+            ctx.roundRect(Math.floor(this.x), Math.floor(this.y), this.width, this.height, 5);
+            ctx.fill();
+            ctx.shadowBlur = 0; // Reset glow
+
+            // Inner bevel/border
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.25)';
+            ctx.lineWidth = 1.5;
             ctx.stroke();
-        } else if (this.health === 1 && this.maxHealth >= 2) {
-            // Heavy crack
-            ctx.strokeStyle = 'rgba(0, 0, 0, 0.55)';
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.moveTo(this.x + 8, this.y + 6);
-            ctx.lineTo(this.x + 22, this.y + 18);
-            ctx.lineTo(this.x + 35, this.y + 10);
-            ctx.lineTo(this.x + 50, this.y + 20);
-            ctx.stroke();
+
+            // Draw emoji inside block
+            ctx.font = "16px serif";
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(this.emoji, Math.floor(this.x + this.width / 2), Math.floor(this.y + this.height / 2));
+
+            // Draw cracks for damaged blocks
+            if (this.health === 2 && this.maxHealth === 3) {
+                // Mild crack
+                ctx.strokeStyle = 'rgba(0, 0, 0, 0.4)';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(Math.floor(this.x + 8), Math.floor(this.y + 6));
+                ctx.lineTo(Math.floor(this.x + 20), Math.floor(this.y + 18));
+                ctx.stroke();
+            } else if (this.health === 1 && this.maxHealth >= 2) {
+                // Heavy crack
+                ctx.strokeStyle = 'rgba(0, 0, 0, 0.55)';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(Math.floor(this.x + 8), Math.floor(this.y + 6));
+                ctx.lineTo(Math.floor(this.x + 22), Math.floor(this.y + 18));
+                ctx.lineTo(Math.floor(this.x + 35), Math.floor(this.y + 10));
+                ctx.lineTo(Math.floor(this.x + 50), Math.floor(this.y + 20));
+                ctx.stroke();
+            }
+        } else {
+            // Flat rendering: simple fillRect and text draw
+            ctx.fillStyle = this.color;
+            ctx.fillRect(Math.floor(this.x), Math.floor(this.y), this.width, this.height);
+
+            ctx.font = "16px serif";
+            ctx.fillStyle = "#ffffff";
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(this.emoji, Math.floor(this.x + this.width / 2), Math.floor(this.y + this.height / 2));
         }
     }
 }
@@ -641,13 +882,17 @@ class PowerUp {
         ctx.font = "24px serif";
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText(this.emoji, this.x, this.y);
+        ctx.fillText(this.emoji, Math.floor(this.x), Math.floor(this.y));
     }
 }
 
 class Particle {
     constructor(game, x, y, color) {
         this.game = game;
+        this.init(x, y, color);
+    }
+
+    init(x, y, color) {
         this.x = x;
         this.y = y;
         this.color = color;
@@ -683,12 +928,14 @@ class Particle {
         ctx.globalAlpha = this.alpha;
         ctx.fillStyle = this.color;
         
-        // Mini glow for particles
-        ctx.shadowBlur = 4;
-        ctx.shadowColor = this.color;
+        if (this.game.highGraphicsEnabled) {
+            // Mini glow for particles
+            ctx.shadowBlur = 4;
+            ctx.shadowColor = this.color;
+        }
         
         ctx.beginPath();
-        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+        ctx.arc(Math.floor(this.x), Math.floor(this.y), this.size, 0, Math.PI * 2);
         ctx.fill();
         ctx.restore();
     }
@@ -696,7 +943,7 @@ class Particle {
 
 class Game {
     constructor() {
-        this.canvas = document.getElementById('gameCanvas');
+        this.canvas = getCachedElement('gameCanvas');
         this.ctx = this.canvas.getContext('2d');
         
         // 9:16 Portrait Aspect Ratio (replaces landscape 800x600)
@@ -710,11 +957,61 @@ class Game {
         this.score = 0;
         this.lives = 3;
 
+        this.highGraphicsEnabled = loadSettings();
+        if (!this.highGraphicsEnabled) {
+            document.body.classList.add('low-spec');
+        } else {
+            document.body.classList.remove('low-spec');
+        }
+        this.settingsOpenedFrom = 'menu';
+        this.musicVolume = getMusicVolume();
+        this.sfxVolume = getSfxVolume();
+
+        // Pre-allocated variables for collision checks (Zero GC)
+        this.ccClosestX = 0;
+        this.ccClosestY = 0;
+        this.ccDistX = 0;
+        this.ccDistY = 0;
+        this.ccDistSq = 0;
+        this.ccRadius = 0;
+        this.ccSpeed = 0;
+        this.ccHitPoint = 0;
+        this.ccAngle = 0;
+        this.ccMinYVel = 0;
+        this.ccOverlapX = 0;
+        this.ccOverlapY = 0;
+        this.ccDist = 0;
+        this.ccPrevBottomY = 0;
+        this.ccCurrBottomY = 0;
+        this.ccDy = 0;
+        this.ccT = 0;
+        this.ccXIntersect = 0;
+        this.ccMaxAngle = 0;
+        this.ccParticleCount = 0;
+        this.ccSideHitHorizontal = false;
+        this.ccBreakablesLeft = false;
+
+        // Static arrays for drawing
+        this.flashEmojis = ['⚽', '🏀', '🏈', '⚾', '🎾', '🏐', '🎱', '🔮', '🌟', '⚡'];
+        this.flashColors = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#3b82f6', '#a855f7', '#ec4899'];
+        this.drawEmoji = '🏐';
+        this.skinId = 'default';
+        this.skinImg = null;
+        this.dx = 0;
+        this.dy = 0;
+
+        // Particle pool
+        this.particlePool = [];
+        for (let i = 0; i < 300; i++) {
+            const p = new Particle(this, 0, 0, '#fff');
+            p.active = false;
+            this.particlePool.push(p);
+        }
+
         this.paddle = new Paddle(this);
         this.balls = [new Ball(this)]; // Multiple balls list
         this.blocks = [];
         this.powerUps = [];
-        this.particles = [];
         
         // Time tracking for Delta Time
         this.lastTime = 0;
@@ -725,6 +1022,7 @@ class Game {
         this.speedTimer = 0;
         this.invertTimer = 0;
         this.doubleScoreTimer = 0;
+        this.ballFlashTimer = 0;
 
         // Screen shake settings
         this.shakeDuration = 0;
@@ -748,6 +1046,52 @@ class Game {
             'golden_legend': { name: "Leyenda Dorada", color: "#eab308", desc: "Racha perfecta Zona 5 (Lvl 50)" }
         };
 
+        this.ballSkinsDict = {
+            'default': { name: "Estándar 🏐", emoji: "🏐", price: 0, src: null },
+            'pelota_bigote': { name: "Balón Bigotudo ⚽🧔", emoji: "⚽", price: 200, src: "pelota_bigote.png" },
+            'ojo': { name: "Ojo Pelado 👁️", emoji: "👁️", price: 400, src: "ojo.png" },
+            'dona': { name: "Dona Glaseada 🍩", emoji: "🍩", price: 600, src: "dona.png" },
+            'rueda': { name: "Rueda de Auto 🛞", emoji: "🛞", price: 800, src: "rueda.png" },
+            'ovni': { name: "Invasión OVNI 🛸", emoji: "🛸", price: 1000, src: "ovni.png" }
+        };
+
+        this.ownedBallSkins = getOwnedBallSkins();
+        this.equippedBallSkin = getEquippedBallSkin();
+
+        // Pre-loader for ball skin images with load count validation
+        this.ballSkinImages = {};
+        const skinsWithImages = Object.entries(this.ballSkinsDict).filter(([id, skin]) => skin.src);
+        const totalImages = skinsWithImages.length;
+        let loadedCount = 0;
+
+        const startBtn = getCachedElement('start-btn');
+        if (startBtn && totalImages > 0) {
+            startBtn.disabled = true;
+            startBtn.textContent = '⏳ CARGANDO...';
+            startBtn.style.opacity = '0.5';
+            startBtn.style.cursor = 'not-allowed';
+        }
+
+        const onImageLoaded = () => {
+            loadedCount++;
+            if (loadedCount === totalImages) {
+                if (startBtn) {
+                    startBtn.disabled = false;
+                    startBtn.textContent = '🎮 JUGAR 🕹️';
+                    startBtn.style.opacity = '1';
+                    startBtn.style.cursor = 'pointer';
+                }
+            }
+        };
+
+        for (const [id, skin] of skinsWithImages) {
+            const img = new Image();
+            img.onload = onImageLoaded;
+            img.onerror = onImageLoaded; // Safety fallback
+            img.src = skin.src;
+            this.ballSkinImages[id] = img;
+        }
+
         // Set global game instance reference for native bridge access
         window.gameInstance = this;
 
@@ -758,6 +1102,27 @@ class Game {
         this.showMainMenu();
         this.updateRecordDisplay();
         this.updateMuteButtonVisual();
+
+        // --- MIGRACIÓN LOCAL: LocalStorage a SharedPreferences ---
+        if (window.AndroidInterface) {
+            try {
+                const localMaxLevel = parseInt(localStorage.getItem('max_level') || '1', 10);
+                const localHighScore = parseInt(localStorage.getItem('high_score') || '0', 10);
+                
+                const nativeMaxLevel = window.AndroidInterface.getMaxLevel ? window.AndroidInterface.getMaxLevel() : 1;
+                const nativeHighScore = window.AndroidInterface.getHighScore ? window.AndroidInterface.getHighScore() : 0;
+                
+                if (localMaxLevel > nativeMaxLevel || localHighScore > nativeHighScore) {
+                    const finalMaxLevel = Math.max(localMaxLevel, nativeMaxLevel);
+                    const finalHighScore = Math.max(localHighScore, nativeHighScore);
+                    window.AndroidInterface.saveProgress(finalMaxLevel, finalHighScore);
+                    console.log(`Progreso migrado de localStorage a SharedPreferences: Lvl ${finalMaxLevel}, Score ${finalHighScore}`);
+                    this.updateRecordDisplay();
+                }
+            } catch (e) {
+                console.error("Error al migrar progreso local:", e);
+            }
+        }
         
         requestAnimationFrame((timestamp) => {
             this.lastTime = timestamp;
@@ -776,8 +1141,70 @@ class Game {
         this.shakeIntensity = intensity;
     }
 
+    spawnParticles(x, y, color, count) {
+        let spawned = 0;
+        for (let i = 0; i < this.particlePool.length; i++) {
+            const p = this.particlePool[i];
+            if (!p.active) {
+                p.init(x, y, color);
+                spawned++;
+                if (spawned >= count) break;
+            }
+        }
+    }
+
+    explodeWatermelon(srcBlock) {
+        // Add a massive explosion bonus (+50 points) affected by active score multiplier
+        const watermelonBonus = 50;
+        this.score += watermelonBonus * (this.scoreMultiplier || 1);
+        this.updateUI();
+
+        // Explode left and right: find active blocks on the same row (Y is close) and adjacent X
+        const rowTolerance = 8; // vertical alignment tolerance
+        const colTolerance = srcBlock.width + 12; // horizontal distance tolerance
+        
+        this.blocks.forEach(b => {
+            if (!b.active || b === srcBlock) return;
+            
+            // Check Y proximity (same row)
+            const sameRow = Math.abs(b.y - srcBlock.y) < rowTolerance;
+            // Check X proximity (adjacent columns)
+            const dx = b.x - srcBlock.x;
+            const isAdjacent = Math.abs(dx) < colTolerance;
+            
+            if (sameRow && isAdjacent) {
+                b.health -= 1;
+                if (b.health <= 0) {
+                    b.active = false;
+                    this.score += (b.points || 0) * (this.scoreMultiplier || 1);
+                    
+                    if (b.fruitType === 'banana') {
+                        this.coinsCollected += 2;
+                        playSFX('coin');
+                    } else if (b.fruitType === 'secret') {
+                        this.ballFlashTimer = 3.0;
+                    } else if (b.fruitType === 'watermelon') {
+                        // Safe cascading chain reaction: since b.active is set to false,
+                        // this recursive call cannot re-target 'b', preventing loops.
+                        this.explodeWatermelon(b);
+                    }
+                    
+                    playSFX('brick');
+                    const pCount = 12 + Math.floor(Math.random() * 8);
+                    this.spawnParticles(b.x + b.width / 2, b.y + b.height / 2, b.color, pCount);
+                } else {
+                    b.onHit();
+                    // dust particle burst
+                    this.spawnParticles(b.x + b.width / 2, b.y + b.height / 2, b.color, 4);
+                }
+            }
+        });
+        
+        this.triggerShake(0.18, 7);
+    }
+
     setupInputs() {
-        this.canvas.addEventListener('mousemove', (e) => {
+        window.addEventListener('mousemove', (e) => {
             if (this.state !== 'PLAYING') return;
             const rect = this.canvas.getBoundingClientRect();
             const scaleX = this.canvas.width / rect.width;
@@ -785,15 +1212,17 @@ class Game {
             this.paddle.update(mouseX);
         });
 
-        // Touch support
-        this.canvas.addEventListener('touchmove', (e) => {
+        // Touch support on window with relative bottom screen check (Fat Finger solution)
+        window.addEventListener('touchmove', (e) => {
             if (this.state !== 'PLAYING') return;
-            e.preventDefault();
-            const rect = this.canvas.getBoundingClientRect();
-            const scaleX = this.canvas.width / rect.width;
-            const touchX = (e.touches[0].clientX - rect.left) * scaleX;
-            this.paddle.update(touchX);
-        }, { passive: false });
+            const touch = e.touches[0];
+            if (touch.clientY > window.innerHeight / 2) {
+                const rect = this.canvas.getBoundingClientRect();
+                const scaleX = this.canvas.width / rect.width;
+                const touchX = (touch.clientX - rect.left) * scaleX;
+                this.paddle.update(touchX);
+            }
+        }, { passive: true });
 
         this.canvas.addEventListener('click', () => {
             if (this.state === 'PLAYING') {
@@ -803,8 +1232,15 @@ class Game {
             }
         });
 
-        this.canvas.addEventListener('touchstart', (e) => {
-            if (this.state === 'PLAYING') {
+        window.addEventListener('touchstart', (e) => {
+            if (this.state !== 'PLAYING') return;
+            const touch = e.touches[0];
+            if (touch.clientY > window.innerHeight / 2) {
+                const rect = this.canvas.getBoundingClientRect();
+                const scaleX = this.canvas.width / rect.width;
+                const touchX = (touch.clientX - rect.left) * scaleX;
+                this.paddle.update(touchX);
+
                 let launched = false;
                 this.balls.forEach(ball => {
                     if (!ball.active) {
@@ -812,98 +1248,97 @@ class Game {
                         launched = true;
                     }
                 });
-                if (launched) e.preventDefault();
             }
-        }, { passive: false });
+        }, { passive: true });
 
         // HUD Listeners
-        document.getElementById('pause-btn').addEventListener('click', (e) => {
+        getCachedElement('pause-btn').addEventListener('click', (e) => {
             e.stopPropagation();
             this.pauseGame();
         });
-        document.getElementById('mute-btn').addEventListener('click', (e) => {
+        getCachedElement('mute-btn').addEventListener('click', (e) => {
             e.stopPropagation();
             this.toggleMute();
         });
 
         // Overlay Listeners
-        document.getElementById('start-btn').addEventListener('click', () => this.startGame());
-        document.getElementById('resume-btn').addEventListener('click', () => this.resumeGame());
-        document.getElementById('restart-pause-btn').addEventListener('click', () => {
+        getCachedElement('start-btn').addEventListener('click', () => this.startGame());
+        getCachedElement('resume-btn').addEventListener('click', () => this.resumeGame());
+        getCachedElement('restart-pause-btn').addEventListener('click', () => {
             this.resumeGame();
             this.startGame();
         });
-        document.getElementById('quit-btn').addEventListener('click', () => {
+        getCachedElement('quit-btn').addEventListener('click', () => {
             this.saveGameState();
             this.quitToMenu();
         });
 
         // Level Select Listeners
-        const lvlSelectBtn = document.getElementById('level-select-btn');
+        const lvlSelectBtn = getCachedElement('level-select-btn');
         if (lvlSelectBtn) {
             lvlSelectBtn.addEventListener('click', () => {
                 this.renderLevelSelector();
                 this.renderSkinsSelector();
-                document.getElementById('level-select-screen').classList.remove('hidden');
+                getCachedElement('level-select-screen').classList.remove('hidden');
                 
                 // Show levels tab by default
-                document.getElementById('panel-levels').classList.remove('hidden');
-                document.getElementById('panel-skins').classList.add('hidden');
-                document.getElementById('tab-levels-btn').classList.add('active-tab');
-                document.getElementById('tab-skins-btn').classList.remove('active-tab');
+                getCachedElement('panel-levels').classList.remove('hidden');
+                getCachedElement('panel-skins').classList.add('hidden');
+                getCachedElement('tab-levels-btn').classList.add('active-tab');
+                getCachedElement('tab-skins-btn').classList.remove('active-tab');
             });
         }
 
-        const closeLvlSelectBtn = document.getElementById('close-level-select-btn');
+        const closeLvlSelectBtn = getCachedElement('close-level-select-btn');
         if (closeLvlSelectBtn) {
             closeLvlSelectBtn.addEventListener('click', () => {
-                document.getElementById('level-select-screen').classList.add('hidden');
+                getCachedElement('level-select-screen').classList.add('hidden');
             });
         }
 
-        const tabLevelsBtn = document.getElementById('tab-levels-btn');
+        const tabLevelsBtn = getCachedElement('tab-levels-btn');
         if (tabLevelsBtn) {
             tabLevelsBtn.addEventListener('click', () => {
-                document.getElementById('panel-levels').classList.remove('hidden');
-                document.getElementById('panel-skins').classList.add('hidden');
+                getCachedElement('panel-levels').classList.remove('hidden');
+                getCachedElement('panel-skins').classList.add('hidden');
                 tabLevelsBtn.classList.add('active-tab');
-                document.getElementById('tab-skins-btn').classList.remove('active-tab');
+                getCachedElement('tab-skins-btn').classList.remove('active-tab');
             });
         }
 
-        const tabSkinsBtn = document.getElementById('tab-skins-btn');
+        const tabSkinsBtn = getCachedElement('tab-skins-btn');
         if (tabSkinsBtn) {
             tabSkinsBtn.addEventListener('click', () => {
-                document.getElementById('panel-levels').classList.add('hidden');
-                document.getElementById('panel-skins').classList.remove('hidden');
+                getCachedElement('panel-levels').classList.add('hidden');
+                getCachedElement('panel-skins').classList.remove('hidden');
                 tabSkinsBtn.classList.add('active-tab');
-                document.getElementById('tab-levels-btn').classList.remove('active-tab');
+                getCachedElement('tab-levels-btn').classList.remove('active-tab');
             });
         }
-        document.getElementById('next-level-btn').addEventListener('click', () => this.loadNextLevel());
+        getCachedElement('next-level-btn').addEventListener('click', () => this.loadNextLevel());
         
-        document.getElementById('restart-btn').addEventListener('click', () => this.startGame());
-        document.getElementById('play-again-btn').addEventListener('click', () => this.startGame());
+        getCachedElement('restart-btn').addEventListener('click', () => this.startGame());
+        getCachedElement('play-again-btn').addEventListener('click', () => this.startGame());
 
         // Game Over and Win screens Menu Principal button listeners
-        const gameOverQuitBtn = document.getElementById('game-over-quit-btn');
+        const gameOverQuitBtn = getCachedElement('game-over-quit-btn');
         if (gameOverQuitBtn) {
             gameOverQuitBtn.addEventListener('click', () => {
-                document.getElementById('game-over-screen').classList.add('hidden');
+                getCachedElement('game-over-screen').classList.add('hidden');
                 this.quitToMenu();
             });
         }
 
-        const winQuitBtn = document.getElementById('win-quit-btn');
+        const winQuitBtn = getCachedElement('win-quit-btn');
         if (winQuitBtn) {
             winQuitBtn.addEventListener('click', () => {
-                document.getElementById('win-screen').classList.add('hidden');
+                getCachedElement('win-screen').classList.add('hidden');
                 this.quitToMenu();
             });
         }
 
         // Resume Saved Session Button
-        const resumeSessionBtn = document.getElementById('resume-session-btn');
+        const resumeSessionBtn = getCachedElement('resume-session-btn');
         if (resumeSessionBtn) {
             resumeSessionBtn.addEventListener('click', () => {
                 const saved = loadSessionState();
@@ -914,10 +1349,10 @@ class Game {
         }
 
         // Leaderboard (Ranking Global) Buttons
-        const leaderboardBtn = document.getElementById('leaderboard-btn');
+        const leaderboardBtn = getCachedElement('leaderboard-btn');
         if (leaderboardBtn) {
             leaderboardBtn.addEventListener('click', () => {
-                const tbody = document.getElementById('leaderboard-tbody');
+                const tbody = getCachedElement('leaderboard-tbody');
                 if (tbody) {
                     tbody.innerHTML = `<tr><td colspan="4" style="color: #8b5cf6; text-align: center;">Cargando Ranking...</td></tr>`;
                 }
@@ -936,34 +1371,34 @@ class Game {
                         this.onLeaderboardLoaded(JSON.stringify(mockData));
                     }, 500);
                 }
-                document.getElementById('leaderboard-screen').classList.remove('hidden');
+                getCachedElement('leaderboard-screen').classList.remove('hidden');
             });
         }
 
-        const closeLeaderboardBtn = document.getElementById('close-leaderboard-btn');
+        const closeLeaderboardBtn = getCachedElement('close-leaderboard-btn');
         if (closeLeaderboardBtn) {
             closeLeaderboardBtn.addEventListener('click', () => {
-                document.getElementById('leaderboard-screen').classList.add('hidden');
+                getCachedElement('leaderboard-screen').classList.add('hidden');
             });
         }
 
         // Profile (Mi Perfil) Buttons and Listeners
-        const profileBtn = document.getElementById('profile-btn');
+        const profileBtn = getCachedElement('profile-btn');
         if (profileBtn) {
             profileBtn.addEventListener('click', () => {
                 this.loadUserProfile();
-                document.getElementById('profile-screen').classList.remove('hidden');
+                getCachedElement('profile-screen').classList.remove('hidden');
             });
         }
 
-        const closeProfileBtn = document.getElementById('close-profile-btn');
+        const closeProfileBtn = getCachedElement('close-profile-btn');
         if (closeProfileBtn) {
             closeProfileBtn.addEventListener('click', () => {
-                document.getElementById('profile-screen').classList.add('hidden');
+                getCachedElement('profile-screen').classList.add('hidden');
             });
         }
 
-        const googleLoginBtn = document.getElementById('google-login-btn');
+        const googleLoginBtn = getCachedElement('google-login-btn');
         if (googleLoginBtn) {
             googleLoginBtn.addEventListener('click', () => {
                 if (window.AndroidInterface && window.AndroidInterface.loginWithGoogle) {
@@ -974,7 +1409,7 @@ class Game {
             });
         }
 
-        const changeAvatarBtn = document.getElementById('change-avatar-btn');
+        const changeAvatarBtn = getCachedElement('change-avatar-btn');
         if (changeAvatarBtn) {
             changeAvatarBtn.addEventListener('click', () => {
                 if (window.AndroidInterface && window.AndroidInterface.selectProfilePicture) {
@@ -985,14 +1420,14 @@ class Game {
             });
         }
 
-        const saveProfileBtn = document.getElementById('save-profile-btn');
+        const saveProfileBtn = getCachedElement('save-profile-btn');
         if (saveProfileBtn) {
             saveProfileBtn.addEventListener('click', () => {
                 this.saveUserProfile();
             });
         }
 
-        const logoutBtn = document.getElementById('logout-btn');
+        const logoutBtn = getCachedElement('logout-btn');
         if (logoutBtn) {
             logoutBtn.addEventListener('click', () => {
                 if (window.AndroidInterface && window.AndroidInterface.logout) {
@@ -1004,51 +1439,69 @@ class Game {
         }
 
         // Shop (Tienda) Buttons and Listeners
-        const shopBtn = document.getElementById('shop-btn');
+        const shopBtn = getCachedElement('shop-btn');
         if (shopBtn) {
             shopBtn.addEventListener('click', () => {
                 this.shopOpenedFrom = 'menu';
                 this.loadShop();
-                document.getElementById('shop-screen').classList.remove('hidden');
+                getCachedElement('shop-screen').classList.remove('hidden');
             });
         }
 
-        const pauseShopBtn = document.getElementById('pause-shop-btn');
+        const pauseShopBtn = getCachedElement('pause-shop-btn');
         if (pauseShopBtn) {
             pauseShopBtn.addEventListener('click', () => {
                 this.shopOpenedFrom = 'pause';
                 this.loadShop();
-                document.getElementById('pause-screen').classList.add('hidden');
-                document.getElementById('shop-screen').classList.remove('hidden');
+                getCachedElement('pause-screen').classList.add('hidden');
+                getCachedElement('shop-screen').classList.remove('hidden');
             });
         }
 
-        const closeShopBtn = document.getElementById('close-shop-btn');
+        const closeShopBtn = getCachedElement('close-shop-btn');
         if (closeShopBtn) {
             closeShopBtn.addEventListener('click', () => {
-                document.getElementById('shop-screen').classList.add('hidden');
+                getCachedElement('shop-screen').classList.add('hidden');
                 if (this.shopOpenedFrom === 'pause') {
-                    document.getElementById('pause-screen').classList.remove('hidden');
+                    getCachedElement('pause-screen').classList.remove('hidden');
                 }
             });
         }
 
-        const buyDoubleScoreBtn = document.getElementById('buy-double-score-btn');
+        const buyDoubleScoreBtn = getCachedElement('buy-double-score-btn');
         if (buyDoubleScoreBtn) {
             buyDoubleScoreBtn.addEventListener('click', () => {
                 this.buyShopItem('doubleScore', 50);
             });
         }
 
-        const buySuperPowerBtn = document.getElementById('buy-super-power-btn');
+        const buySuperPowerBtn = getCachedElement('buy-super-power-btn');
         if (buySuperPowerBtn) {
             buySuperPowerBtn.addEventListener('click', () => {
                 this.buyShopItem('superPower', 100);
             });
         }
 
+        const tabShopBuffs = getCachedElement('tab-shop-buffs-btn');
+        const tabShopSkins = getCachedElement('tab-shop-skins-btn');
+        if (tabShopBuffs && tabShopSkins) {
+            tabShopBuffs.addEventListener('click', () => {
+                getCachedElement('panel-shop-buffs').classList.remove('hidden');
+                getCachedElement('panel-shop-skins').classList.add('hidden');
+                tabShopBuffs.classList.add('active-tab');
+                tabShopSkins.classList.remove('active-tab');
+            });
+            tabShopSkins.addEventListener('click', () => {
+                getCachedElement('panel-shop-buffs').classList.add('hidden');
+                getCachedElement('panel-shop-skins').classList.remove('hidden');
+                tabShopSkins.classList.add('active-tab');
+                tabShopBuffs.classList.remove('active-tab');
+                this.renderBallSkinsShop();
+            });
+        }
+
         // HUD Floating Buff Activation Listeners
-        const actDoubleBtn = document.getElementById('activate-double-score-btn');
+        const actDoubleBtn = getCachedElement('activate-double-score-btn');
         if (actDoubleBtn) {
             actDoubleBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -1056,7 +1509,7 @@ class Game {
             });
         }
 
-        const actSuperBtn = document.getElementById('activate-super-power-btn');
+        const actSuperBtn = getCachedElement('activate-super-power-btn');
         if (actSuperBtn) {
             actSuperBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -1065,7 +1518,7 @@ class Game {
         }
 
         // Daily Gift Button
-        const dailyGiftBtn = document.getElementById('daily-gift-btn');
+        const dailyGiftBtn = getCachedElement('daily-gift-btn');
         if (dailyGiftBtn) {
             dailyGiftBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -1074,7 +1527,7 @@ class Game {
         }
 
         // Extra Life Modal Buttons
-        const buyExtraLifeBtn = document.getElementById('buy-extra-life-btn');
+        const buyExtraLifeBtn = getCachedElement('buy-extra-life-btn');
         if (buyExtraLifeBtn) {
             buyExtraLifeBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -1082,11 +1535,143 @@ class Game {
             });
         }
 
-        const declineExtraLifeBtn = document.getElementById('decline-extra-life-btn');
+        const declineExtraLifeBtn = getCachedElement('decline-extra-life-btn');
         if (declineExtraLifeBtn) {
             declineExtraLifeBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
                 this.declineExtraLife();
+            });
+        }
+
+        // Settings (Ajustes) Screen listeners
+        const settingsBtn = getCachedElement('settings-btn');
+        if (settingsBtn) {
+            settingsBtn.addEventListener('click', () => {
+                this.settingsOpenedFrom = 'menu';
+                const toggle = getCachedElement('neon-effects-toggle');
+                if (toggle) toggle.checked = this.highGraphicsEnabled;
+                
+                // Sync sound sliders
+                const musicSlider = getCachedElement('music-volume-slider');
+                const musicVal = getCachedElement('music-volume-val');
+                if (musicSlider && musicVal) {
+                    const volPercent = Math.round(this.musicVolume * 100);
+                    musicSlider.value = volPercent;
+                    musicVal.textContent = volPercent + '%';
+                }
+
+                const sfxSlider = getCachedElement('sfx-volume-slider');
+                const sfxVal = getCachedElement('sfx-volume-val');
+                if (sfxSlider && sfxVal) {
+                    const volPercent = Math.round(this.sfxVolume * 100);
+                    sfxSlider.value = volPercent;
+                    sfxVal.textContent = volPercent + '%';
+                }
+
+                const soundPanel = getCachedElement('sound-settings-panel');
+                if (soundPanel) soundPanel.classList.add('hidden');
+                const soundArrow = getCachedElement('sound-submenu-arrow');
+                if (soundArrow) soundArrow.textContent = '▶';
+
+                getCachedElement('start-screen').classList.add('hidden');
+                getCachedElement('settings-screen').classList.remove('hidden');
+            });
+        }
+
+        const pauseSettingsBtn = getCachedElement('pause-settings-btn');
+        if (pauseSettingsBtn) {
+            pauseSettingsBtn.addEventListener('click', () => {
+                this.settingsOpenedFrom = 'pause';
+                const toggle = getCachedElement('neon-effects-toggle');
+                if (toggle) toggle.checked = this.highGraphicsEnabled;
+                
+                // Sync sound sliders
+                const musicSlider = getCachedElement('music-volume-slider');
+                const musicVal = getCachedElement('music-volume-val');
+                if (musicSlider && musicVal) {
+                    const volPercent = Math.round(this.musicVolume * 100);
+                    musicSlider.value = volPercent;
+                    musicVal.textContent = volPercent + '%';
+                }
+
+                const sfxSlider = getCachedElement('sfx-volume-slider');
+                const sfxVal = getCachedElement('sfx-volume-val');
+                if (sfxSlider && sfxVal) {
+                    const volPercent = Math.round(this.sfxVolume * 100);
+                    sfxSlider.value = volPercent;
+                    sfxVal.textContent = volPercent + '%';
+                }
+
+                const soundPanel = getCachedElement('sound-settings-panel');
+                if (soundPanel) soundPanel.classList.add('hidden');
+                const soundArrow = getCachedElement('sound-submenu-arrow');
+                if (soundArrow) soundArrow.textContent = '▶';
+
+                getCachedElement('pause-screen').classList.add('hidden');
+                getCachedElement('settings-screen').classList.remove('hidden');
+            });
+        }
+
+        const closeSettingsBtn = getCachedElement('close-settings-btn');
+        if (closeSettingsBtn) {
+            closeSettingsBtn.addEventListener('click', () => {
+                getCachedElement('settings-screen').classList.add('hidden');
+                if (this.settingsOpenedFrom === 'pause') {
+                    getCachedElement('pause-screen').classList.remove('hidden');
+                } else {
+                    getCachedElement('start-screen').classList.remove('hidden');
+                }
+            });
+        }
+
+        const neonToggle = getCachedElement('neon-effects-toggle');
+        if (neonToggle) {
+            neonToggle.addEventListener('change', (e) => {
+                this.highGraphicsEnabled = e.target.checked;
+                saveSettings(this.highGraphicsEnabled);
+                if (!this.highGraphicsEnabled) {
+                    document.body.classList.add('low-spec');
+                } else {
+                    document.body.classList.remove('low-spec');
+                }
+            });
+        }
+
+        const soundSubmenuBtn = getCachedElement('sound-submenu-btn');
+        if (soundSubmenuBtn) {
+            soundSubmenuBtn.addEventListener('click', () => {
+                const panel = getCachedElement('sound-settings-panel');
+                const arrow = getCachedElement('sound-submenu-arrow');
+                if (panel && arrow) {
+                    const isHidden = panel.classList.contains('hidden');
+                    if (isHidden) {
+                        panel.classList.remove('hidden');
+                        arrow.textContent = '▼';
+                    } else {
+                        panel.classList.add('hidden');
+                        arrow.textContent = '▶';
+                    }
+                }
+            });
+        }
+
+        const musicSlider = getCachedElement('music-volume-slider');
+        if (musicSlider) {
+            musicSlider.addEventListener('input', (e) => {
+                const val = parseInt(e.target.value, 10);
+                getCachedElement('music-volume-val').textContent = val + '%';
+                this.musicVolume = val / 100;
+                saveMusicVolume(this.musicVolume);
+            });
+        }
+
+        const sfxSlider = getCachedElement('sfx-volume-slider');
+        if (sfxSlider) {
+            sfxSlider.addEventListener('input', (e) => {
+                const val = parseInt(e.target.value, 10);
+                getCachedElement('sfx-volume-val').textContent = val + '%';
+                this.sfxVolume = val / 100;
+                saveSfxVolume(this.sfxVolume);
             });
         }
     }
@@ -1098,11 +1683,11 @@ class Game {
         this.score = 0;
         this.lives = 3;
 
-        document.getElementById('start-screen').classList.add('hidden');
-        document.getElementById('game-over-screen').classList.add('hidden');
-        document.getElementById('win-screen').classList.add('hidden');
-        document.getElementById('pause-screen').classList.add('hidden');
-        document.getElementById('level-cleared-screen').classList.add('hidden');
+        getCachedElement('start-screen').classList.add('hidden');
+        getCachedElement('game-over-screen').classList.add('hidden');
+        getCachedElement('win-screen').classList.add('hidden');
+        getCachedElement('pause-screen').classList.add('hidden');
+        getCachedElement('level-cleared-screen').classList.add('hidden');
 
         // Reset all power-up timers
         this.paddleTimer = 0;
@@ -1114,7 +1699,9 @@ class Game {
         this.paddle = new Paddle(this);
         this.balls = [new Ball(this)];
         this.powerUps = [];
-        this.particles = [];
+        for (let i = 0; i < this.particlePool.length; i++) {
+            this.particlePool[i].active = false;
+        }
         this.shakeDuration = 0;
 
         // Reset coins collected in this run
@@ -1128,7 +1715,7 @@ class Game {
         this.superPowerCount = getSuperPowerCount();
 
         // Show floating buff buttons
-        document.getElementById('game-buffs-container').classList.remove('hidden');
+        getCachedElement('game-buffs-container').classList.remove('hidden');
         this.updateBuffButtonsUI();
         
         this.updateUI();
@@ -1143,7 +1730,7 @@ class Game {
         if (this.state !== 'PLAYING') return;
         this.state = 'PAUSED';
         pauseBGMusic();
-        document.getElementById('pause-screen').classList.remove('hidden');
+        getCachedElement('pause-screen').classList.remove('hidden');
         this.saveGameState(); // Auto-save on pausing
     }
 
@@ -1151,31 +1738,31 @@ class Game {
         if (this.state !== 'PAUSED') return;
         this.state = 'PLAYING';
         startBGMusic();
-        document.getElementById('pause-screen').classList.add('hidden');
-        document.getElementById('game-buffs-container').classList.remove('hidden');
+        getCachedElement('pause-screen').classList.add('hidden');
+        getCachedElement('game-buffs-container').classList.remove('hidden');
         this.updateBuffButtonsUI();
     }
 
     quitToMenu() {
         this.state = 'MENU';
         pauseBGMusic();
-        document.getElementById('pause-screen').classList.add('hidden');
-        document.getElementById('game-buffs-container').classList.add('hidden');
-        document.getElementById('start-screen').classList.remove('hidden');
+        getCachedElement('pause-screen').classList.add('hidden');
+        getCachedElement('game-buffs-container').classList.add('hidden');
+        getCachedElement('start-screen').classList.remove('hidden');
         this.showMainMenu();
     }
 
     showMainMenu() {
         const highScore = window.AndroidInterface ? window.AndroidInterface.getHighScore() : 0;
-        document.getElementById('high-score-display').textContent = highScore;
+        getCachedElement('high-score-display').textContent = highScore;
         this.updateRecordDisplay();
-        document.getElementById('game-buffs-container').classList.add('hidden');
+        getCachedElement('game-buffs-container').classList.add('hidden');
 
         // Update daily gift button state
         this.updateDailyGiftUI();
 
         const saved = loadSessionState();
-        const resumeBtn = document.getElementById('resume-session-btn');
+        const resumeBtn = getCachedElement('resume-session-btn');
         if (resumeBtn) {
             if (saved) {
                 resumeBtn.classList.remove('hidden');
@@ -1187,17 +1774,17 @@ class Game {
 
     toggleMute() {
         const muted = toggleMuteState();
-        document.getElementById('mute-btn').textContent = muted ? '🔇' : '🔊';
+        getCachedElement('mute-btn').textContent = muted ? '🔇' : '🔊';
     }
 
     updateMuteButtonVisual() {
         const muted = isGameMuted();
-        document.getElementById('mute-btn').textContent = muted ? '🔇' : '🔊';
+        getCachedElement('mute-btn').textContent = muted ? '🔇' : '🔊';
     }
 
     updateRecordDisplay() {
         const highScore = window.AndroidInterface ? window.AndroidInterface.getHighScore() : 0;
-        const bottomHighScore = document.getElementById('bottom-high-score-display');
+        const bottomHighScore = getCachedElement('bottom-high-score-display');
         if (bottomHighScore) {
             bottomHighScore.textContent = highScore;
         }
@@ -1322,7 +1909,9 @@ class Game {
     loadLevel(level) {
         this.blocks = [];
         this.powerUps = [];
-        this.particles = [];
+        for (let i = 0; i < this.particlePool.length; i++) {
+            this.particlePool[i].active = false;
+        }
         
         // Clear power-up states
         this.paddle.width = this.paddle.baseWidth;
@@ -1382,8 +1971,8 @@ class Game {
                 // Pause the game loop updates temporarily
                 this.state = 'PAUSED';
                 pauseBGMusic();
-                document.getElementById('game-buffs-container').classList.add('hidden');
-                document.getElementById('extra-life-modal').classList.remove('hidden');
+                getCachedElement('game-buffs-container').classList.add('hidden');
+                getCachedElement('extra-life-modal').classList.remove('hidden');
             } else {
                 this.state = 'GAMEOVER';
                 pauseBGMusic();
@@ -1406,10 +1995,10 @@ class Game {
     }
 
     updateUI() {
-        document.getElementById('level-display').textContent = this.level;
-        document.getElementById('score-display').textContent = this.score;
-        document.getElementById('lives-display').textContent = '❤️'.repeat(Math.max(0, this.lives));
-        const coinsDisplay = document.getElementById('coins-display');
+        getCachedElement('level-display').textContent = this.level;
+        getCachedElement('score-display').textContent = this.score;
+        getCachedElement('lives-display').textContent = '❤️'.repeat(Math.max(0, this.lives));
+        const coinsDisplay = getCachedElement('coins-display');
         if (coinsDisplay) {
             coinsDisplay.textContent = this.coinsCollected;
         }
@@ -1424,127 +2013,171 @@ class Game {
     }
 
     checkCollisions() {
-        const paddle = this.paddle;
+        this.ccPaddle = this.paddle;
         
-        this.balls.forEach(ball => {
-            const radius = ball.radius;
+        for (this.ccI = 0; this.ccI < this.balls.length; this.ccI++) {
+            this.ccBall = this.balls[this.ccI];
+            this.ccRadius = this.ccBall.radius;
 
-            // 1. Paddle collision (Circle to Rectangle)
-            const closestPaddleX = Math.max(paddle.x, Math.min(ball.x, paddle.x + paddle.width));
-            const closestPaddleY = Math.max(paddle.y, Math.min(ball.y, paddle.y + paddle.height));
+            // 1. Paddle collision (CCD + Circle to Rectangle Fallback)
+            this.ccPaddleHit = false;
 
-            const distPaddleX = ball.x - closestPaddleX;
-            const distPaddleY = ball.y - closestPaddleY;
-            const distPaddleSq = distPaddleX * distPaddleX + distPaddleY * distPaddleY;
+            if (this.ccBall.speedY > 0) {
+                this.ccPrevBottomY = this.ccBall.prevY + this.ccRadius;
+                this.ccCurrBottomY = this.ccBall.y + this.ccRadius;
 
-            if (distPaddleSq < radius * radius) {
-                ball.y = paddle.y - radius;
-                ball.squash(false); // Squash vertically on paddle hit
-                playSFX('bounce');
+                if (this.ccPrevBottomY <= this.ccPaddle.y && this.ccCurrBottomY >= this.ccPaddle.y) {
+                    this.ccDy = this.ccCurrBottomY - this.ccPrevBottomY;
+                    this.ccT = this.ccDy === 0 ? 0 : (this.ccPaddle.y - this.ccPrevBottomY) / this.ccDy;
+                    this.ccXIntersect = this.ccBall.prevX + this.ccT * (this.ccBall.x - this.ccBall.prevX);
 
-                const speed = Math.sqrt(ball.speedX * ball.speedX + ball.speedY * ball.speedY);
-                const hitPoint = (ball.x - (paddle.x + paddle.width / 2)) / (paddle.width / 2); // -1 to 1
-                
-                // Limit maximum bounce angle to 60 degrees to prevent near-horizontal bounce
-                const maxAngle = 60 * Math.PI / 180;
-                const angle = hitPoint * maxAngle;
+                    if (this.ccXIntersect >= this.ccPaddle.x && this.ccXIntersect <= this.ccPaddle.x + this.ccPaddle.width) {
+                        this.ccBall.y = this.ccPaddle.y - this.ccRadius;
+                        this.ccBall.x = this.ccXIntersect;
+                        this.ccBall.squash(false);
+                        playSFX('bounce');
 
-                ball.speedX = speed * Math.sin(angle);
-                ball.speedY = -speed * Math.cos(angle);
+                        this.ccSpeed = Math.sqrt(this.ccBall.speedX * this.ccBall.speedX + this.ccBall.speedY * this.ccBall.speedY);
+                        this.ccHitPoint = (this.ccBall.x - (this.ccPaddle.x + this.ccPaddle.width / 2)) / (this.ccPaddle.width / 2); // -1 to 1
 
-                // Enforce a minimum vertical velocity to guarantee the ball moves with vertical energy
-                const minYVelocity = speed * 0.4; // 40% of the ball's speed
-                if (Math.abs(ball.speedY) < minYVelocity) {
-                    ball.speedY = -minYVelocity;
-                    // Recalculate speedX to preserve the magnitude of the velocity vector
-                    ball.speedX = Math.sign(ball.speedX) * Math.sqrt(speed * speed - minYVelocity * minYVelocity);
+                        this.ccMaxAngle = 60 * Math.PI / 180;
+                        this.ccAngle = this.ccHitPoint * this.ccMaxAngle;
+
+                        this.ccBall.speedX = this.ccSpeed * Math.sin(this.ccAngle);
+                        this.ccBall.speedY = -this.ccSpeed * Math.cos(this.ccAngle);
+
+                        this.ccMinYVel = this.ccSpeed * 0.4;
+                        if (Math.abs(this.ccBall.speedY) < this.ccMinYVel) {
+                            this.ccBall.speedY = -this.ccMinYVel;
+                            this.ccBall.speedX = Math.sign(this.ccBall.speedX) * Math.sqrt(this.ccSpeed * this.ccSpeed - this.ccMinYVel * this.ccMinYVel);
+                        }
+                        this.ccPaddleHit = true;
+                    }
+                }
+            }
+
+            if (!this.ccPaddleHit) {
+                this.ccClosestX = Math.max(this.ccPaddle.x, Math.min(this.ccBall.x, this.ccPaddle.x + this.ccPaddle.width));
+                this.ccClosestY = Math.max(this.ccPaddle.y, Math.min(this.ccBall.y, this.ccPaddle.y + this.ccPaddle.height));
+
+                this.ccDistX = this.ccBall.x - this.ccClosestX;
+                this.ccDistY = this.ccBall.y - this.ccClosestY;
+                this.ccDistSq = this.ccDistX * this.ccDistX + this.ccDistY * this.ccDistY;
+
+                if (this.ccDistSq < this.ccRadius * this.ccRadius) {
+                    this.ccBall.y = this.ccPaddle.y - this.ccRadius;
+                    this.ccBall.squash(false); // Squash vertically on paddle hit
+                    playSFX('bounce');
+
+                    this.ccSpeed = Math.sqrt(this.ccBall.speedX * this.ccBall.speedX + this.ccBall.speedY * this.ccBall.speedY);
+                    this.ccHitPoint = (this.ccBall.x - (this.ccPaddle.x + this.ccPaddle.width / 2)) / (this.ccPaddle.width / 2); // -1 to 1
+                    
+                    this.ccMaxAngle = 60 * Math.PI / 180;
+                    this.ccAngle = this.ccHitPoint * this.ccMaxAngle;
+
+                    this.ccBall.speedX = this.ccSpeed * Math.sin(this.ccAngle);
+                    this.ccBall.speedY = -this.ccSpeed * Math.cos(this.ccAngle);
+
+                    this.ccMinYVel = this.ccSpeed * 0.4; // 40% of the ball's speed
+                    if (Math.abs(this.ccBall.speedY) < this.ccMinYVel) {
+                        this.ccBall.speedY = -this.ccMinYVel;
+                        this.ccBall.speedX = Math.sign(this.ccBall.speedX) * Math.sqrt(this.ccSpeed * this.ccSpeed - this.ccMinYVel * this.ccMinYVel);
+                    }
                 }
             }
 
             // 2. Block collision (Circle to Rectangle with Side-Specific Bounce)
-            this.blocks.forEach(block => {
-                if (!block.active) return;
+            for (this.ccJ = 0; this.ccJ < this.blocks.length; this.ccJ++) {
+                this.ccBlock = this.blocks[this.ccJ];
+                if (!this.ccBlock.active) continue;
 
-                const closestBlockX = Math.max(block.x, Math.min(ball.x, block.x + block.width));
-                const closestBlockY = Math.max(block.y, Math.min(ball.y, block.y + block.height));
+                this.ccClosestX = Math.max(this.ccBlock.x, Math.min(this.ccBall.x, this.ccBlock.x + this.ccBlock.width));
+                this.ccClosestY = Math.max(this.ccBlock.y, Math.min(this.ccBall.y, this.ccBlock.y + this.ccBlock.height));
 
-                const distBlockX = ball.x - closestBlockX;
-                const distBlockY = ball.y - closestBlockY;
-                const distBlockSq = distBlockX * distBlockX + distBlockY * distBlockY;
+                this.ccDistX = this.ccBall.x - this.ccClosestX;
+                this.ccDistY = this.ccBall.y - this.ccClosestY;
+                this.ccDistSq = this.ccDistX * this.ccDistX + this.ccDistY * this.ccDistY;
 
-                if (distBlockSq < radius * radius) {
-                    let sideHitHorizontal = false;
+                if (this.ccDistSq < this.ccRadius * this.ccRadius) {
+                    this.ccSideHitHorizontal = false;
 
                     // Fireball piercing logic: fireball does NOT bounce on breakable blocks, but DOES bounce on indestructible ones
-                    if (!ball.isFireball || block.health === Infinity) {
-                        const dist = Math.sqrt(distBlockSq) || 0.001;
-                        const overlapX = radius - Math.abs(distBlockX);
-                        const overlapY = radius - Math.abs(distBlockY);
+                    if (!this.ccBall.isFireball || this.ccBlock.health === Infinity) {
+                        this.ccDist = Math.sqrt(this.ccDistSq) || 0.001;
+                        this.ccOverlapX = this.ccRadius - Math.abs(this.ccDistX);
+                        this.ccOverlapY = this.ccRadius - Math.abs(this.ccDistY);
 
-                        if (distBlockX === 0) {
-                            ball.speedY = (ball.y < block.y) ? -Math.abs(ball.speedY) : Math.abs(ball.speedY);
-                            ball.y += (ball.y < block.y) ? -overlapY : overlapY;
-                        } else if (distBlockY === 0) {
-                            ball.speedX = (ball.x < block.x) ? -Math.abs(ball.speedX) : Math.abs(ball.speedX);
-                            ball.x += (ball.x < block.x) ? -overlapX : overlapX;
-                            sideHitHorizontal = true;
+                        if (this.ccDistX === 0) {
+                            this.ccBall.speedY = (this.ccBall.y < this.ccBlock.y) ? -Math.abs(this.ccBall.speedY) : Math.abs(this.ccBall.speedY);
+                            this.ccBall.y += (this.ccBall.y < this.ccBlock.y) ? -this.ccOverlapY : this.ccOverlapY;
+                        } else if (this.ccDistY === 0) {
+                            this.ccBall.speedX = (this.ccBall.x < this.ccBlock.x) ? -Math.abs(this.ccBall.speedX) : Math.abs(this.ccBall.speedX);
+                            this.ccBall.x += (this.ccBall.x < this.ccBlock.x) ? -this.ccOverlapX : this.ccOverlapX;
+                            this.ccSideHitHorizontal = true;
                         } else {
-                            if (overlapX < overlapY) {
-                                ball.speedX = (ball.x < block.x) ? -Math.abs(ball.speedX) : Math.abs(ball.speedX);
-                                ball.x += (ball.x < block.x) ? -overlapX : overlapX;
-                                sideHitHorizontal = true;
+                            if (this.ccOverlapX < this.ccOverlapY) {
+                                this.ccBall.speedX = (this.ccBall.x < this.ccBlock.x) ? -Math.abs(this.ccBall.speedX) : Math.abs(this.ccBall.speedX);
+                                this.ccBall.x += (this.ccBall.x < this.ccBlock.x) ? -this.ccOverlapX : this.ccOverlapX;
+                                this.ccSideHitHorizontal = true;
                             } else {
-                                ball.speedY = (ball.y < block.y) ? -Math.abs(ball.speedY) : Math.abs(ball.speedY);
-                                ball.y += (ball.y < block.y) ? -overlapY : overlapY;
+                                this.ccBall.speedY = (this.ccBall.y < this.ccBlock.y) ? -Math.abs(this.ccBall.speedY) : Math.abs(this.ccBall.speedY);
+                                this.ccBall.y += (this.ccBall.y < this.ccBlock.y) ? -this.ccOverlapY : this.ccOverlapY;
                             }
                         }
                     }
 
                     // Apply squash/stretch to ball
-                    ball.squash(sideHitHorizontal);
+                    this.ccBall.squash(this.ccSideHitHorizontal);
 
                     // Handle damage, screen shake, particles, and score
-                    if (block.health !== Infinity) {
-                        block.health -= ball.damage;
-                        if (block.health <= 0) {
-                            block.active = false;
-                            // Apply score multiplier if active (Double Score buff)
-                            this.score += 10 * (block.maxHealth || 1) * (this.scoreMultiplier || 1);
+                    if (this.ccBlock.health !== Infinity) {
+                        this.ccBlock.health -= this.ccBall.damage;
+                        if (this.ccBlock.health <= 0) {
+                            this.ccBlock.active = false;
+                            
+                            // Aplica el multiplicador al valor del ladrillo
+                            this.score += (this.ccBlock.points || 0) * (this.scoreMultiplier || 1);
                             this.updateUI();
                             
                             playSFX('brick');
 
                             // Trigger screen shake based on brick weight
-                            if (block.maxHealth >= 3) {
+                            if (this.ccBlock.maxHealth >= 3) {
                                 this.triggerShake(0.2, 9);
-                            } else if (block.maxHealth === 2) {
+                            } else if (this.ccBlock.maxHealth === 2) {
                                 this.triggerShake(0.14, 5);
                             } else {
                                 this.triggerShake(0.08, 3);
                             }
 
                             // Spawn particle explosion of brick color
-                            const particleCount = 12 + Math.floor(Math.random() * 8);
-                            for (let i = 0; i < particleCount; i++) {
-                                this.particles.push(new Particle(this, block.x + block.width / 2, block.y + block.height / 2, block.color));
+                            this.ccParticleCount = 12 + Math.floor(Math.random() * 8);
+                            this.spawnParticles(this.ccBlock.x + this.ccBlock.width / 2, this.ccBlock.y + this.ccBlock.height / 2, this.ccBlock.color, this.ccParticleCount);
+
+                            // --- EFECTOS DE LOS EMOJIS ARCADE ---
+                            if (this.ccBlock.fruitType === 'banana') {
+                                this.coinsCollected += 2;
+                                playSFX('coin');
+                            } else if (this.ccBlock.fruitType === 'watermelon') {
+                                this.explodeWatermelon(this.ccBlock);
+                            } else if (this.ccBlock.fruitType === 'secret') {
+                                this.ballFlashTimer = 3.0; // Hace parpadear la bola de colores
                             }
 
-                            // Drop a coin with 15% probability
-                            if (Math.random() <= 0.15) {
-                                this.powerUps.push(new PowerUp(this, block.x + block.width / 2, block.y + block.height / 2, 'coin'));
+                            // Drop a coin with 15% probability (evita duplicados para la banana que ya da directamente)
+                            if (this.ccBlock.fruitType !== 'banana' && Math.random() <= 0.15) {
+                                this.powerUps.push(new PowerUp(this, this.ccBlock.x + this.ccBlock.width / 2, this.ccBlock.y + this.ccBlock.height / 2, 'coin'));
                             }
 
-                            this.spawnPowerUp(block.x + block.width / 2, block.y + block.height / 2);
+                            this.spawnPowerUp(this.ccBlock.x + this.ccBlock.width / 2, this.ccBlock.y + this.ccBlock.height / 2);
                         } else {
                             // Non-lethal hit: small impact shake
                             this.triggerShake(0.08, 2);
                             playSFX('bounce');
-                            block.onHit();
+                            this.ccBlock.onHit();
 
                             // Small dust particle burst
-                            for (let i = 0; i < 4; i++) {
-                                this.particles.push(new Particle(this, closestBlockX, closestBlockY, block.color));
-                            }
+                            this.spawnParticles(this.ccClosestX, this.ccClosestY, this.ccBlock.color, 4);
                         }
                     } else {
                         // Impact against indestructible obstacle block
@@ -1552,24 +2185,28 @@ class Game {
                         playSFX('bounce');
                         
                         // Spawn sparks/dust particles
-                        for (let i = 0; i < 5; i++) {
-                            this.particles.push(new Particle(this, closestBlockX, closestBlockY, '#94a3b8'));
-                        }
+                        this.spawnParticles(this.ccClosestX, this.ccClosestY, '#94a3b8', 5);
                     }
 
                     // Check level win criteria
-                    const breakablesLeft = this.blocks.some(b => b.active && b.health !== Infinity);
-                    if (!breakablesLeft) {
+                    this.ccBreakablesLeft = false;
+                    for (this.ccK = 0; this.ccK < this.blocks.length; this.ccK++) {
+                        if (this.blocks[this.ccK].active && this.blocks[this.ccK].health !== Infinity) {
+                            this.ccBreakablesLeft = true;
+                            break;
+                        }
+                    }
+                    if (!this.ccBreakablesLeft) {
                         this.levelUp();
                     }
                 }
-            });
-        });
+            }
+        }
     }
 
     levelUp() {
         this.persistCollectedCoins();
-        document.getElementById('game-buffs-container').classList.add('hidden');
+        getCachedElement('game-buffs-container').classList.add('hidden');
 
         const isBossLevel = (this.level === 10 || this.level === 20 || this.level === 30 || this.level === 40 || this.level === 50);
 
@@ -1580,10 +2217,10 @@ class Game {
             pauseBGMusic();
             playSFX('powerup');
 
-            const chestModal = document.getElementById('chest-modal');
-            const chestAnim = document.getElementById('chest-animation-container');
-            const chestDesc = document.getElementById('chest-modal-desc');
-            const closeChestBtn = document.getElementById('close-chest-btn');
+            const chestModal = getCachedElement('chest-modal');
+            const chestAnim = getCachedElement('chest-animation-container');
+            const chestDesc = getCachedElement('chest-modal-desc');
+            const closeChestBtn = getCachedElement('close-chest-btn');
 
             chestModal.classList.remove('hidden');
             closeChestBtn.classList.add('hidden');
@@ -1632,8 +2269,8 @@ class Game {
                 closeChestBtn.removeEventListener('click', handleClose);
                 
                 this.state = 'LEVEL_CLEARED';
-                document.getElementById('cleared-score').textContent = this.score;
-                document.getElementById('level-cleared-screen').classList.remove('hidden');
+                getCachedElement('cleared-score').textContent = this.score;
+                getCachedElement('level-cleared-screen').classList.remove('hidden');
             };
             closeChestBtn.addEventListener('click', handleClose);
         } else {
@@ -1642,13 +2279,13 @@ class Game {
             pauseBGMusic();
             playSFX('powerup');
 
-            document.getElementById('cleared-score').textContent = this.score;
-            document.getElementById('level-cleared-screen').classList.remove('hidden');
+            getCachedElement('cleared-score').textContent = this.score;
+            getCachedElement('level-cleared-screen').classList.remove('hidden');
         }
     }
 
     loadNextLevel() {
-        document.getElementById('level-cleared-screen').classList.add('hidden');
+        getCachedElement('level-cleared-screen').classList.add('hidden');
         this.level++;
         if (this.level > 50) {
             this.state = 'VICTORY';
@@ -1658,7 +2295,7 @@ class Game {
             startBGMusic();
             this.loadLevel(this.level);
             this.saveGameState(); // Auto-save at the start of the next level
-            document.getElementById('game-buffs-container').classList.remove('hidden');
+            getCachedElement('game-buffs-container').classList.remove('hidden');
             this.updateBuffButtonsUI();
         }
         this.updateUI();
@@ -1711,30 +2348,55 @@ class Game {
                 this.updateBuffButtonsUI();
             }
         }
+        if (this.ballFlashTimer > 0) {
+            this.ballFlashTimer -= dt;
+        }
 
         // Update moving blocks in levels >= 20
-        this.blocks.forEach(block => block.update(dt));
+        for (this.i = 0; this.i < this.blocks.length; this.i++) {
+            this.blocks[this.i].update(dt);
+        }
 
         // Update all balls
-        this.balls.forEach(ball => ball.update(dt));
+        for (this.i = 0; this.i < this.balls.length; this.i++) {
+            this.balls[this.i].update(dt);
+        }
         
         // Update paddle, powerups, and particles
         this.paddle.update();
-        this.powerUps.forEach(p => p.update(dt));
-        this.particles.forEach(p => p.update(dt));
+        for (this.i = 0; this.i < this.powerUps.length; this.i++) {
+            this.powerUps[this.i].update(dt);
+        }
+        for (this.i = 0; this.i < this.particlePool.length; this.i++) {
+            if (this.particlePool[this.i].active) this.particlePool[this.i].update(dt);
+        }
         
         this.checkCollisions();
 
-        // Remove balls that fall below screen
-        this.balls = this.balls.filter(ball => ball.y - ball.radius <= this.height);
+        // Remove balls that fall below screen inline (Zero GC filter)
+        this.j = 0;
+        for (this.i = 0; this.i < this.balls.length; this.i++) {
+            if (this.balls[this.i].y - this.balls[this.i].radius <= this.height) {
+                this.balls[this.j] = this.balls[this.i];
+                this.j++;
+            }
+        }
+        this.balls.length = this.j;
         
         // If all balls are lost, lose a life
         if (this.balls.length === 0) {
             this.loseLife();
         }
 
-        this.powerUps = this.powerUps.filter(p => p.active);
-        this.particles = this.particles.filter(p => p.active);
+        // Remove inactive powerUps inline
+        this.j = 0;
+        for (this.i = 0; this.i < this.powerUps.length; this.i++) {
+            if (this.powerUps[this.i].active) {
+                this.powerUps[this.j] = this.powerUps[this.i];
+                this.j++;
+            }
+        }
+        this.powerUps.length = this.j;
     }
 
     draw() {
@@ -1743,17 +2405,25 @@ class Game {
 
         // Apply Screen Shake if active
         if (this.shakeDuration > 0) {
-            const dx = (Math.random() - 0.5) * this.shakeIntensity;
-            const dy = (Math.random() - 0.5) * this.shakeIntensity;
-            this.ctx.translate(dx, dy);
+            this.dx = (Math.random() - 0.5) * this.shakeIntensity;
+            this.dy = (Math.random() - 0.5) * this.shakeIntensity;
+            this.ctx.translate(this.dx, this.dy);
         }
 
         if (this.state === 'PLAYING' || this.state === 'PAUSED') {
             this.paddle.draw(this.ctx);
-            this.balls.forEach(ball => ball.draw(this.ctx));
-            this.blocks.forEach(block => block.draw(this.ctx));
-            this.powerUps.forEach(p => p.draw(this.ctx));
-            this.particles.forEach(p => p.draw(this.ctx));
+            for (this.i = 0; this.i < this.balls.length; this.i++) {
+                this.balls[this.i].draw(this.ctx);
+            }
+            for (this.i = 0; this.i < this.blocks.length; this.i++) {
+                this.blocks[this.i].draw(this.ctx);
+            }
+            for (this.i = 0; this.i < this.powerUps.length; this.i++) {
+                this.powerUps[this.i].draw(this.ctx);
+            }
+            for (this.i = 0; this.i < this.particlePool.length; this.i++) {
+                if (this.particlePool[this.i].active) this.particlePool[this.i].draw(this.ctx);
+            }
         }
 
         this.ctx.restore();
@@ -1878,14 +2548,14 @@ class Game {
             this.updateMuteButtonVisual();
 
             // Display floating buffs HUD
-            document.getElementById('game-buffs-container').classList.remove('hidden');
+            getCachedElement('game-buffs-container').classList.remove('hidden');
             this.updateBuffButtonsUI();
 
-            document.getElementById('start-screen').classList.add('hidden');
-            document.getElementById('game-over-screen').classList.add('hidden');
-            document.getElementById('win-screen').classList.add('hidden');
-            document.getElementById('pause-screen').classList.add('hidden');
-            document.getElementById('level-cleared-screen').classList.add('hidden');
+            getCachedElement('start-screen').classList.add('hidden');
+            getCachedElement('game-over-screen').classList.add('hidden');
+            getCachedElement('win-screen').classList.add('hidden');
+            getCachedElement('pause-screen').classList.add('hidden');
+            getCachedElement('level-cleared-screen').classList.add('hidden');
 
             return true;
         } catch (e) {
@@ -1903,20 +2573,20 @@ class Game {
         // Si hay una nueva puntuación récord, se solicita el apodo
         if (this.score > currentHighScore && window.AndroidInterface) {
             const savedNickname = window.AndroidInterface.getPlayerNickname() || "";
-            document.getElementById('nickname-input').value = savedNickname;
+            getCachedElement('nickname-input').value = savedNickname;
             
             // Ocultar otras overlays y mostrar modal del apodo
-            document.getElementById('game-over-screen').classList.add('hidden');
-            document.getElementById('win-screen').classList.add('hidden');
-            document.getElementById('nickname-modal').classList.remove('hidden');
+            getCachedElement('game-over-screen').classList.add('hidden');
+            getCachedElement('win-screen').classList.add('hidden');
+            getCachedElement('nickname-modal').classList.remove('hidden');
             
             // Vincular evento al botón de guardado
-            const saveBtn = document.getElementById('save-nickname-btn');
+            const saveBtn = getCachedElement('save-nickname-btn');
             const newSaveBtn = saveBtn.cloneNode(true);
             saveBtn.parentNode.replaceChild(newSaveBtn, saveBtn);
             
             newSaveBtn.addEventListener('click', () => {
-                let nickname = document.getElementById('nickname-input').value.trim();
+                let nickname = getCachedElement('nickname-input').value.trim();
                 if (!nickname) nickname = "JugadorAnónimo";
                 
                 // Guardar local y en la nube con la foto de perfil actual
@@ -1926,7 +2596,7 @@ class Game {
                 this.updateRecordDisplay();
                 
                 // Ocultar modal del apodo
-                document.getElementById('nickname-modal').classList.add('hidden');
+                getCachedElement('nickname-modal').classList.add('hidden');
                 
                 // Mostrar pantalla final correspondiente
                 this.showEndScreen();
@@ -1941,19 +2611,37 @@ class Game {
     }
 
     showEndScreen() {
-        document.getElementById('game-buffs-container').classList.add('hidden');
+        getCachedElement('game-buffs-container').classList.add('hidden');
         if (this.state === 'GAMEOVER') {
-            document.getElementById('final-score').textContent = this.score;
-            document.getElementById('game-over-screen').classList.remove('hidden');
+            getCachedElement('final-score').textContent = this.score;
+            
+            // Frases sarcásticas y graciosas al azar al perder
+            const quotes = [
+                "¿En serio? Era el nivel más fácil...",
+                "El código no tiene la culpa de tus reflejos.",
+                "La gravedad: 1 | Tú: 0",
+                "Esa bola tenía familia y la has dejado caer.",
+                "¡Vaya jugada! Mis abuelitos tienen mejores reflejos.",
+                "¿Estabas jugando con el dedo tapando la barra, o qué?",
+                "Game Over. Por favor, inserta más talento.",
+                "Tranquilo, la práctica hace al maestro... aunque a ti te tomará vidas."
+            ];
+            const randomQuote = quotes[Math.floor(Math.random() * quotes.length)];
+            const quoteEl = getCachedElement('game-over-quote');
+            if (quoteEl) {
+                quoteEl.textContent = randomQuote;
+            }
+            
+            getCachedElement('game-over-screen').classList.remove('hidden');
         } else if (this.state === 'VICTORY') {
-            document.getElementById('win-screen').classList.remove('hidden');
+            getCachedElement('win-screen').classList.remove('hidden');
         }
     }
 
     onLeaderboardLoaded(jsonString) {
         try {
             const list = JSON.parse(jsonString);
-            const tbody = document.getElementById('leaderboard-tbody');
+            const tbody = getCachedElement('leaderboard-tbody');
             if (!tbody) return;
 
             if (list.length === 0) {
@@ -1986,7 +2674,7 @@ class Game {
             tbody.innerHTML = html;
         } catch (e) {
             console.error("Error al procesar el JSON del Leaderboard:", e);
-            const tbody = document.getElementById('leaderboard-tbody');
+            const tbody = getCachedElement('leaderboard-tbody');
             if (tbody) {
                 tbody.innerHTML = `<tr><td colspan="4" style="color: #ef4444; text-align: center;">Error al cargar el ranking.</td></tr>`;
             }
@@ -1994,7 +2682,7 @@ class Game {
     }
 
     onLeaderboardError(errorMsg) {
-        const tbody = document.getElementById('leaderboard-tbody');
+        const tbody = getCachedElement('leaderboard-tbody');
         if (tbody) {
             tbody.innerHTML = `<tr><td colspan="4" style="color: #ef4444; text-align: center;">Error: ${this.escapeHtml(errorMsg)}</td></tr>`;
         }
@@ -2024,19 +2712,19 @@ class Game {
         if (!profilePic && authJson.photoUrl) profilePic = authJson.photoUrl;
         if (!email && authJson.email) email = authJson.email;
 
-        const nameInput = document.getElementById('profile-name-input');
+        const nameInput = getCachedElement('profile-name-input');
         if (nameInput) nameInput.value = nickname;
 
-        const emailInput = document.getElementById('profile-email-input');
+        const emailInput = getCachedElement('profile-email-input');
         if (emailInput) emailInput.value = email;
 
-        const preview = document.getElementById('profile-avatar-preview');
+        const preview = getCachedElement('profile-avatar-preview');
         if (preview) {
             preview.src = profilePic || "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'><circle cx='40' cy='40' r='40' fill='%238b5cf6'/><text x='40' y='50' font-size='32' text-anchor='middle' fill='white'>👤</text></svg>";
         }
 
-        const googleLoginBtn = document.getElementById('google-login-btn');
-        const logoutBtn = document.getElementById('logout-btn');
+        const googleLoginBtn = getCachedElement('google-login-btn');
+        const logoutBtn = getCachedElement('logout-btn');
 
         if (authJson.provider === 'google') {
             if (googleLoginBtn) googleLoginBtn.classList.add('hidden');
@@ -2048,9 +2736,9 @@ class Game {
     }
 
     saveUserProfile() {
-        const nameInput = document.getElementById('profile-name-input');
-        const emailInput = document.getElementById('profile-email-input');
-        const preview = document.getElementById('profile-avatar-preview');
+        const nameInput = getCachedElement('profile-name-input');
+        const emailInput = getCachedElement('profile-email-input');
+        const preview = getCachedElement('profile-avatar-preview');
 
         let nickname = nameInput ? nameInput.value.trim() : "";
         if (!nickname) nickname = "JugadorAnónimo";
@@ -2065,12 +2753,12 @@ class Game {
         localStorage.setItem('player_email', email);
 
         alert("¡Perfil guardado correctamente!");
-        document.getElementById('profile-screen').classList.add('hidden');
+        getCachedElement('profile-screen').classList.add('hidden');
         this.updateRecordDisplay();
     }
 
     onProfilePictureSelected(base64Image) {
-        const preview = document.getElementById('profile-avatar-preview');
+        const preview = getCachedElement('profile-avatar-preview');
         if (preview) {
             preview.src = base64Image;
         }
@@ -2080,23 +2768,23 @@ class Game {
         try {
             const user = JSON.parse(userJsonString);
 
-            const nameInput = document.getElementById('profile-name-input');
+            const nameInput = getCachedElement('profile-name-input');
             if (nameInput) nameInput.value = user.name || "";
 
-            const emailInput = document.getElementById('profile-email-input');
+            const emailInput = getCachedElement('profile-email-input');
             if (emailInput) emailInput.value = user.email || "";
 
             if (user.email) {
                 localStorage.setItem('player_email', user.email);
             }
 
-            const preview = document.getElementById('profile-avatar-preview');
+            const preview = getCachedElement('profile-avatar-preview');
             if (preview) {
                 preview.src = user.photoUrl || "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'><circle cx='40' cy='40' r='40' fill='%238b5cf6'/><text x='40' y='50' font-size='32' text-anchor='middle' fill='white'>👤</text></svg>";
             }
 
-            const googleLoginBtn = document.getElementById('google-login-btn');
-            const logoutBtn = document.getElementById('logout-btn');
+            const googleLoginBtn = getCachedElement('google-login-btn');
+            const logoutBtn = getCachedElement('logout-btn');
 
             if (user.provider === 'google') {
                 if (googleLoginBtn) googleLoginBtn.classList.add('hidden');
@@ -2117,22 +2805,39 @@ class Game {
         }
     }
 
+    onProgressRestored(level, score) {
+        try {
+            console.log(`onProgressRestored invocado: Lvl ${level}, Score ${score}`);
+            this.level = level;
+            this.score = 0; // Reinicia el puntaje de la sesión actual
+            this.lives = 3;
+            
+            if (this.state === 'MENU') {
+                this.updateRecordDisplay();
+                this.showMainMenu();
+            }
+            alert(`¡Progreso recuperado con éxito de la nube!\nRécord: ${score} puntos\nNivel Máximo: ${level}`);
+        } catch (e) {
+            console.error("Error en onProgressRestored:", e);
+        }
+    }
+
     onAuthLogout() {
-        const nameInput = document.getElementById('profile-name-input');
+        const nameInput = getCachedElement('profile-name-input');
         if (nameInput) nameInput.value = "";
 
-        const emailInput = document.getElementById('profile-email-input');
+        const emailInput = getCachedElement('profile-email-input');
         if (emailInput) emailInput.value = "";
 
         localStorage.removeItem('player_email');
 
-        const preview = document.getElementById('profile-avatar-preview');
+        const preview = getCachedElement('profile-avatar-preview');
         if (preview) {
             preview.src = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'><circle cx='40' cy='40' r='40' fill='%238b5cf6'/><text x='40' y='50' font-size='32' text-anchor='middle' fill='white'>👤</text></svg>";
         }
 
-        const googleLoginBtn = document.getElementById('google-login-btn');
-        const logoutBtn = document.getElementById('logout-btn');
+        const googleLoginBtn = getCachedElement('google-login-btn');
+        const logoutBtn = getCachedElement('logout-btn');
 
         if (googleLoginBtn) googleLoginBtn.classList.remove('hidden');
         if (logoutBtn) logoutBtn.classList.add('hidden');
@@ -2177,8 +2882,18 @@ class Game {
             coins = parseInt(localStorage.getItem('player_coins') || '0', 10);
         }
 
-        const display = document.getElementById('shop-coins-display');
+        const display = getCachedElement('shop-coins-display');
         if (display) display.textContent = coins;
+
+        // Reset tabs to Buffs by default on opening
+        const tabShopBuffs = getCachedElement('tab-shop-buffs-btn');
+        const tabShopSkins = getCachedElement('tab-shop-skins-btn');
+        if (tabShopBuffs && tabShopSkins) {
+            tabShopBuffs.classList.add('active-tab');
+            tabShopSkins.classList.remove('active-tab');
+            getCachedElement('panel-shop-buffs').classList.remove('hidden');
+            getCachedElement('panel-shop-skins').classList.add('hidden');
+        }
 
         // Ensure we load the latest stock from bridge/localStorage before showing details
         this.doubleScoreCount = getDoubleScoreCount();
@@ -2207,23 +2922,36 @@ class Game {
             limitMsg = ` (Límite hoy: ${countToday}/5)`;
         }
 
-        const titleText = document.querySelector('#shop-screen h1');
+        const titleText = getCachedQuery('#shop-screen h1');
         if (titleText) {
-            titleText.innerHTML = `TIENDA DE BUFFS<br><span style="font-size: 0.85rem; color: #94a3b8; font-weight: normal;">${limitMsg}</span>`;
+            titleText.innerHTML = `TIENDA<br><span style="font-size: 0.85rem; color: #94a3b8; font-weight: normal;">${limitMsg}</span>`;
         }
 
         // Update purchase buttons based on counts and limits
-        const buyDoubleBtn = document.getElementById('buy-double-score-btn');
+        const buyDoubleBtn = getCachedElement('buy-double-score-btn');
         if (buyDoubleBtn) {
             buyDoubleBtn.innerHTML = `50 🪙<br><span style="font-size: 0.7rem; color: rgba(255,255,255,0.7); font-weight: normal;">En Stock: ${this.doubleScoreCount}</span>`;
             buyDoubleBtn.disabled = coins < 50 || dailyLimitReached;
+            if (coins >= 50 && !dailyLimitReached) {
+                buyDoubleBtn.classList.add('can-buy');
+            } else {
+                buyDoubleBtn.classList.remove('can-buy');
+            }
         }
 
-        const buySuperBtn = document.getElementById('buy-super-power-btn');
+        const buySuperBtn = getCachedElement('buy-super-power-btn');
         if (buySuperBtn) {
             buySuperBtn.innerHTML = `100 🪙<br><span style="font-size: 0.7rem; color: rgba(255,255,255,0.7); font-weight: normal;">En Stock: ${this.superPowerCount}</span>`;
             buySuperBtn.disabled = coins < 100 || dailyLimitReached;
+            if (coins >= 100 && !dailyLimitReached) {
+                buySuperBtn.classList.add('can-buy');
+            } else {
+                buySuperBtn.classList.remove('can-buy');
+            }
         }
+
+        // Render ball skins list
+        this.renderBallSkinsShop();
     }
 
     buyShopItem(itemId, cost) {
@@ -2281,14 +3009,125 @@ class Game {
         this.loadShop(); // Reload UI
     }
 
+    renderBallSkinsShop() {
+        const container = getCachedElement('shop-ball-skins-container');
+        if (!container) return;
+        container.innerHTML = '';
+
+        let coins = 0;
+        if (window.AndroidInterface && window.AndroidInterface.getCoins) {
+            coins = window.AndroidInterface.getCoins();
+        } else {
+            coins = parseInt(localStorage.getItem('player_coins') || '0', 10);
+        }
+
+        const owned = this.ownedBallSkins || ['default'];
+        const equipped = this.equippedBallSkin || 'default';
+
+        for (const [id, skin] of Object.entries(this.ballSkinsDict)) {
+            const item = document.createElement('div');
+            item.className = 'shop-item skin-card';
+
+            const icon = document.createElement('div');
+            icon.className = 'shop-item-icon';
+            if (skin.src) {
+                const img = document.createElement('img');
+                img.src = skin.src;
+                img.className = 'shop-item-img';
+                icon.appendChild(img);
+            } else {
+                icon.textContent = skin.emoji;
+            }
+
+            const name = document.createElement('span');
+            name.className = 'shop-item-name';
+            // Strip emojis from the name for a cleaner appearance under the larger icon
+            name.textContent = skin.name.replace(/[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF]/g, "").trim();
+
+            const button = document.createElement('button');
+            button.className = 'buy-btn';
+
+            const isOwned = owned.includes(id);
+            if (id === equipped) {
+                button.classList.add('equipped');
+                button.textContent = 'EQUIPADO';
+                button.style.background = 'rgba(16, 185, 129, 0.4)';
+                button.style.borderColor = '#10b981';
+                button.disabled = true;
+            } else if (isOwned) {
+                button.textContent = 'EQUIPAR';
+                button.addEventListener('click', () => {
+                    playSFX('bounce');
+                    this.equippedBallSkin = id;
+                    saveEquippedBallSkin(id);
+                    
+                    // Update ball emojis for active balls if needed
+                    this.balls.forEach(ball => {
+                        ball.emoji = skin.emoji.split('')[0] || '🏐';
+                    });
+
+                    this.renderBallSkinsShop();
+                });
+            } else {
+                button.textContent = `${skin.price} 🪙`;
+                button.disabled = coins < skin.price;
+                if (coins >= skin.price) {
+                    button.classList.add('can-buy');
+                } else {
+                    button.classList.remove('can-buy');
+                }
+                button.addEventListener('click', () => {
+                    this.buyBallSkin(id, skin.price);
+                });
+            }
+
+            item.appendChild(icon);
+            item.appendChild(name);
+            item.appendChild(button);
+            container.appendChild(item);
+        }
+    }
+
+    buyBallSkin(id, price) {
+        let coins = 0;
+        if (window.AndroidInterface && window.AndroidInterface.getCoins) {
+            coins = window.AndroidInterface.getCoins();
+        } else {
+            coins = parseInt(localStorage.getItem('player_coins') || '0', 10);
+        }
+
+        if (coins < price) {
+            alert("No tienes suficientes monedas.");
+            return;
+        }
+
+        coins -= price;
+        if (window.AndroidInterface && window.AndroidInterface.saveCoins) {
+            window.AndroidInterface.saveCoins(coins);
+        } else {
+            localStorage.setItem('player_coins', coins.toString());
+        }
+
+        this.ownedBallSkins.push(id);
+        saveOwnedBallSkins(this.ownedBallSkins);
+
+        playSFX('shop');
+        
+        // Reload HUD coins display
+        const display = getCachedElement('shop-coins-display');
+        if (display) display.textContent = coins;
+
+        this.renderBallSkinsShop();
+    }
+
     updateBuffButtonsUI() {
-        const doubleBadge = document.getElementById('double-score-count-badge');
+        const doubleBadge = getCachedElement('double-score-count-badge');
         if (doubleBadge) doubleBadge.textContent = this.doubleScoreCount;
 
-        const superBadge = document.getElementById('super-power-count-badge');
+        const superBadge = getCachedElement('super-power-count-badge');
         if (superBadge) superBadge.textContent = this.superPowerCount;
         
-        const doubleBtn = document.getElementById('activate-double-score-btn');
+        const doubleBtn = getCachedElement('activate-double-score-btn');
         if (doubleBtn) {
             // Keep button enabled, adjust opacity to indicate availability
             doubleBtn.style.opacity = (this.doubleScoreCount <= 0) ? "0.35" : "0.85";
@@ -2303,7 +3142,7 @@ class Game {
             }
         }
 
-        const superBtn = document.getElementById('activate-super-power-btn');
+        const superBtn = getCachedElement('activate-super-power-btn');
         if (superBtn) {
             // Keep button enabled, adjust opacity to indicate availability
             superBtn.style.opacity = (this.superPowerCount <= 0) ? "0.35" : "0.85";
@@ -2369,7 +3208,7 @@ class Game {
     }
 
     showBuffToast(message) {
-        const toast = document.getElementById('buff-toast');
+        const toast = getCachedElement('buff-toast');
         if (toast) {
             toast.textContent = message;
             toast.classList.remove('buff-toast-hidden');
@@ -2418,8 +3257,8 @@ class Game {
             this.lives = 1;
             this.coinsCollected = 0; // Reset run coins since we persisted them
 
-            document.getElementById('extra-life-modal').classList.add('hidden');
-            document.getElementById('game-buffs-container').classList.remove('hidden');
+            getCachedElement('extra-life-modal').classList.add('hidden');
+            getCachedElement('game-buffs-container').classList.remove('hidden');
 
             this.state = 'PLAYING';
             this.paddle.width = this.paddle.baseWidth;
@@ -2441,14 +3280,14 @@ class Game {
     }
 
     declineExtraLife() {
-        document.getElementById('extra-life-modal').classList.add('hidden');
+        getCachedElement('extra-life-modal').classList.add('hidden');
         this.state = 'GAMEOVER';
         startBGMusic();
         this.checkAndSaveScore();
     }
 
     updateDailyGiftUI() {
-        const giftBtn = document.getElementById('daily-gift-btn');
+        const giftBtn = getCachedElement('daily-gift-btn');
         if (!giftBtn) return;
 
         const lastClaim = getLastDailyGiftClaimTime();
@@ -2495,7 +3334,7 @@ class Game {
         playSFX('shop');
         this.updateDailyGiftUI();
 
-        const shopCoinsDisplay = document.getElementById('shop-coins-display');
+        const shopCoinsDisplay = getCachedElement('shop-coins-display');
         if (shopCoinsDisplay) {
             shopCoinsDisplay.textContent = coins;
         }
@@ -2504,7 +3343,7 @@ class Game {
     }
 
     updateZoneBackground(level) {
-        const container = document.querySelector('.game-container');
+        const container = getCachedQuery('.game-container');
         if (!container) return;
         let bg = '';
         if (level <= 10) {
@@ -2522,7 +3361,7 @@ class Game {
     }
 
     renderLevelSelector() {
-        const grid = document.getElementById('levels-grid');
+        const grid = getCachedElement('levels-grid');
         if (!grid) return;
         grid.innerHTML = '';
 
@@ -2543,7 +3382,7 @@ class Game {
                 btn.textContent = i;
                 btn.addEventListener('click', () => {
                     playSFX('bounce');
-                    document.getElementById('level-select-screen').classList.add('hidden');
+                    getCachedElement('level-select-screen').classList.add('hidden');
                     this.startAtLevel(i);
                 });
             }
@@ -2552,7 +3391,7 @@ class Game {
     }
 
     renderSkinsSelector() {
-        const container = document.getElementById('skins-container');
+        const container = getCachedElement('skins-container');
         if (!container) return;
         container.innerHTML = '';
 
@@ -2627,11 +3466,11 @@ class Game {
         this.score = 0;
         this.lives = 3;
 
-        document.getElementById('start-screen').classList.add('hidden');
-        document.getElementById('game-over-screen').classList.add('hidden');
-        document.getElementById('win-screen').classList.add('hidden');
-        document.getElementById('pause-screen').classList.add('hidden');
-        document.getElementById('level-cleared-screen').classList.add('hidden');
+        getCachedElement('start-screen').classList.add('hidden');
+        getCachedElement('game-over-screen').classList.add('hidden');
+        getCachedElement('win-screen').classList.add('hidden');
+        getCachedElement('pause-screen').classList.add('hidden');
+        getCachedElement('level-cleared-screen').classList.add('hidden');
 
         this.paddleTimer = 0;
         this.fireballTimer = 0;
@@ -2642,7 +3481,9 @@ class Game {
         this.paddle = new Paddle(this);
         this.balls = [new Ball(this)];
         this.powerUps = [];
-        this.particles = [];
+        for (let i = 0; i < this.particlePool.length; i++) {
+            this.particlePool[i].active = false;
+        }
         this.shakeDuration = 0;
         this.coinsCollected = 0;
         this.scoreMultiplier = 1;
@@ -2650,7 +3491,7 @@ class Game {
         this.doubleScoreCount = getDoubleScoreCount();
         this.superPowerCount = getSuperPowerCount();
 
-        document.getElementById('game-buffs-container').classList.remove('hidden');
+        getCachedElement('game-buffs-container').classList.remove('hidden');
         this.updateBuffButtonsUI();
         
         this.updateUI();
@@ -2669,13 +3510,13 @@ class Game {
     }
 
     loop(timestamp) {
-        let dt = (timestamp - this.lastTime) / 1000;
+        this.dt = (timestamp - this.lastTime) / 1000;
         this.lastTime = timestamp;
 
-        // Cap dt to prevent massive jumps on lag spikes
-        if (dt > 0.1) dt = 0.1;
+        // Cap dt to prevent massive jumps on lag spikes (continuous collision safety)
+        if (this.dt > 0.05) this.dt = 0.05;
 
-        this.update(dt);
+        this.update(this.dt);
         this.draw();
         requestAnimationFrame(this.loop);
     }

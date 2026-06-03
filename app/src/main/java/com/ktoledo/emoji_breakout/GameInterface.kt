@@ -346,5 +346,60 @@ class GameInterface(private val context: Context, private val webView: WebView) 
     fun getEquippedSkin(): String {
         return preferences.getString("player_equipped_skin", "default") ?: "default"
     }
+
+    @JavascriptInterface
+    fun saveSettings(highGraphics: Boolean) {
+        preferences.edit().putBoolean("high_graphics_enabled", highGraphics).apply()
+        Log.d(TAG, "Configuración de gráficos guardada: $highGraphics")
+    }
+
+    @JavascriptInterface
+    fun loadSettings(): Boolean {
+        val highGraphics = preferences.getBoolean("high_graphics_enabled", true)
+        Log.d(TAG, "Configuración de gráficos cargada: $highGraphics")
+        return highGraphics
+    }
+
+    @JavascriptInterface
+    fun setMusicVolume(volume: Float) {
+        soundManager.setMusicVolume(volume)
+    }
+
+    @JavascriptInterface
+    fun setSfxVolume(volume: Float) {
+        soundManager.setSfxVolume(volume)
+    }
+
+    @JavascriptInterface
+    fun getMusicVolume(): Float {
+        return soundManager.getMusicVolume()
+    }
+
+    @JavascriptInterface
+    fun getSfxVolume(): Float {
+        return soundManager.getSfxVolume()
+    }
+
+    @JavascriptInterface
+    fun saveInventory(ownedSkinsJSON: String) {
+        preferences.edit().putString("player_owned_ball_skins", ownedSkinsJSON).apply()
+        Log.d(TAG, "Inventory ball skins saved: $ownedSkinsJSON")
+    }
+
+    @JavascriptInterface
+    fun loadInventory(): String {
+        return preferences.getString("player_owned_ball_skins", "[\"default\"]") ?: "[\"default\"]"
+    }
+
+    @JavascriptInterface
+    fun saveEquippedBallSkin(skinId: String) {
+        preferences.edit().putString("player_equipped_ball_skin", skinId).apply()
+        Log.d(TAG, "Equipped ball skin saved: $skinId")
+    }
+
+    @JavascriptInterface
+    fun getEquippedBallSkin(): String {
+        return preferences.getString("player_equipped_ball_skin", "default") ?: "default"
+    }
 }
 

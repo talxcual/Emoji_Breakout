@@ -26,6 +26,8 @@ class SoundManager private constructor(private val context: Context) {
     
     private val prefs = context.getSharedPreferences("EmojiBreakoutPrefs", Context.MODE_PRIVATE)
     private var isMuted: Boolean = prefs.getBoolean("is_muted", false)
+    private var musicVolume: Float = prefs.getFloat("music_volume", 0.5f)
+    private var sfxVolume: Float = prefs.getFloat("sfx_volume", 0.8f)
 
     init {
         // Initialize SoundPool with low latency attributes
@@ -69,9 +71,9 @@ class SoundManager private constructor(private val context: Context) {
                 val afd = context.assets.openFd("bg_music.mp3")
                 setDataSource(afd.fileDescriptor, afd.startOffset, afd.length)
                 isLooping = true
-                setVolume(0.12f, 0.12f) // Play at a pleasant background level
                 prepare()
             }
+            updateMusicVolume()
             Log.d(TAG, "Música de fondo preparada desde assets/bg_music.mp3")
         } catch (e: Exception) {
             Log.w(TAG, "No se pudo preparar música de fondo: ${e.message}. El juego continuará en silencio de fondo.")
@@ -82,7 +84,7 @@ class SoundManager private constructor(private val context: Context) {
         if (isMuted) return
         val soundId = soundMap[name]
         if (soundId != null) {
-            soundPool.play(soundId, 1.0f, 1.0f, 1, 0, 1.0f)
+            soundPool.play(soundId, sfxVolume, sfxVolume, 1, 0, 1.0f)
         } else {
             Log.d(TAG, "SFX $name no disponible para reproducir.")
         }
@@ -115,6 +117,8 @@ class SoundManager private constructor(private val context: Context) {
         isMuted = !isMuted
         prefs.edit().putBoolean("is_muted", isMuted).apply()
 
+        updateMusicVolume()
+
         if (isMuted) {
             pauseMusic()
         } else {
@@ -127,5 +131,28 @@ class SoundManager private constructor(private val context: Context) {
 
     fun isMuted(): Boolean {
         return isMuted
+    }
+
+    fun setMusicVolume(volume: Float) {
+        musicVolume = volume
+        prefs.edit().putFloat("music_volume", musicVolume).apply()
+        updateMusicVolume()
+    }
+
+    fun setSfxVolume(volume: Float) {
+        sfxVolume = volume
+        prefs.edit().putFloat("sfx_volume", sfxVolume).apply()
+    }
+
+    fun getMusicVolume(): Float = musicVolume
+    fun getSfxVolume(): Float = sfxVolume
+
+    fun updateMusicVolume() {
+        if (isMuted) {
+            mediaPlayer?.setVolume(0.0f, 0.0f)
+        } else {
+            val v = musicVolume * 0.25f
+            mediaPlayer?.setVolume(v, v)
+        }
     }
 }

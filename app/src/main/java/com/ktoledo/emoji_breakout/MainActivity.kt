@@ -170,12 +170,63 @@ class MainActivity : AppCompatActivity() {
                     userJson.put("photoUrl", photoUrl)
                     userJson.put("provider", "google")
                     
-                    webView.post {
-                        webView.evaluateJavascript(
-                            "if (window.gameInstance) window.gameInstance.onAuthSuccess('${escapeJson(userJson.toString())}');",
-                            null
-                        )
-                    }
+                    // Fetch existing score from Firebase under this user's UID to check for restore
+                    val scoreRepo = FirebaseScoreRepository(this)
+                    scoreRepo.getUserHighScore(user.uid,
+                        onSuccess = { entry ->
+                            if (entry != null) {
+                                val localHighScore = preferences.getInt("high_score", 0)
+                                val localMaxLevel = preferences.getInt("max_level", 1)
+                                
+                                // Compare and restore if cloud progress is higher
+                                val isCloudBetter = (entry.score > localHighScore) || 
+                                                    (entry.score == localHighScore && entry.maxLevel > localMaxLevel)
+                                
+                                if (isCloudBetter) {
+                                    val editor = preferences.edit()
+                                    editor.putInt("high_score", entry.score)
+                                    editor.putInt("max_level", entry.maxLevel)
+                                    if (entry.name.isNotEmpty()) {
+                                        editor.putString("player_nickname", entry.name)
+                                        userJson.put("name", entry.name)
+                                    }
+                                    if (entry.profilePic.isNotEmpty()) {
+                                        editor.putString("player_profile_pic", entry.profilePic)
+                                        userJson.put("photoUrl", entry.profilePic)
+                                    }
+                                    editor.apply()
+                                    
+                                    Log.d(TAG, "Progreso de usuario restaurado desde Firebase: Lvl ${entry.maxLevel}, Score ${entry.score}")
+                                    
+                                    // Notificar al juego Javascript para actualizar el estado del juego
+                                    webView.post {
+                                        webView.evaluateJavascript(
+                                            "if (window.gameInstance && window.gameInstance.onProgressRestored) window.gameInstance.onProgressRestored(${entry.maxLevel}, ${entry.score});",
+                                            null
+                                        )
+                                    }
+                                }
+                            }
+                            
+                            // Llamar al callback original de éxito
+                            webView.post {
+                                webView.evaluateJavascript(
+                                    "if (window.gameInstance) window.gameInstance.onAuthSuccess('${escapeJson(userJson.toString())}');",
+                                    null
+                                )
+                            }
+                        },
+                        onFailure = { e ->
+                            Log.e(TAG, "Fallo al verificar record en Firebase durante login", e)
+                            // En cualquier caso llamar al callback original para no bloquear el flujo
+                            webView.post {
+                                webView.evaluateJavascript(
+                                    "if (window.gameInstance) window.gameInstance.onAuthSuccess('${escapeJson(userJson.toString())}');",
+                                    null
+                                )
+                            }
+                        }
+                    )
                 }
             }
             .addOnFailureListener { e ->
