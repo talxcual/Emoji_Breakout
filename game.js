@@ -3834,13 +3834,14 @@ document.addEventListener("DOMContentLoaded", function() {
 // FIREBASE BACKEND INTEGRATION (LEADERBOARD)
 // ==========================================
 const firebaseConfig = {
-    apiKey: "AIzaSyAhpxzczueuVNJlOr8ySLaaRprJjXLPriU",
-    authDomain: "homero-chino-clicker.firebaseapp.com",
-    databaseURL: "https://homero-chino-clicker-default-rtdb.firebaseio.com",
-    projectId: "homero-chino-clicker",
-    storageBucket: "homero-chino-clicker.firebasestorage.app",
-    messagingSenderId: "811243337021",
-    appId: "1:811243337021:web:6a4402334fd939c88e0154"
+    apiKey: "AIzaSyDxWTvtUiE3hG0fPOin2TNJ1s4elDcCDss",
+    authDomain: "emoji-breakout.firebaseapp.com",
+    databaseURL: "https://emoji-breakout-default-rtdb.firebaseio.com",
+    projectId: "emoji-breakout",
+    storageBucket: "emoji-breakout.firebasestorage.app",
+    messagingSenderId: "1039875513324",
+    appId: "1:1039875513324:web:66d66fd69584743ec03ec9",
+    measurementId: "G-H66R5G6ENJ"
 };
 firebase.initializeApp(firebaseConfig);
 
