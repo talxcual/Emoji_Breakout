@@ -202,6 +202,57 @@ function saveLastDailyGiftClaimTime(time) {
     localStorage.setItem('last_daily_gift_claim_time', time.toString());
 }
 
+// --- Skins Bridge Helpers ---
+function getUnlockedSkins() {
+    if (window.AndroidInterface && window.AndroidInterface.getUnlockedSkins) {
+        try {
+            return window.AndroidInterface.getUnlockedSkins().split(',');
+        } catch (e) {
+            console.error("Error calling getUnlockedSkins:", e);
+        }
+    }
+    let skins = localStorage.getItem('player_unlocked_skins') || 'default';
+    return skins.split(',');
+}
+
+function saveUnlockedSkins(skinsArray) {
+    const unlockedStr = skinsArray.join(',');
+    const equipped = getEquippedSkin();
+    if (window.AndroidInterface && window.AndroidInterface.saveSkins) {
+        try {
+            window.AndroidInterface.saveSkins(unlockedStr, equipped);
+            return;
+        } catch (e) {
+            console.error("Error calling saveSkins:", e);
+        }
+    }
+    localStorage.setItem('player_unlocked_skins', unlockedStr);
+}
+
+function getEquippedSkin() {
+    if (window.AndroidInterface && window.AndroidInterface.getEquippedSkin) {
+        try {
+            return window.AndroidInterface.getEquippedSkin();
+        } catch (e) {
+            console.error("Error calling getEquippedSkin:", e);
+        }
+    }
+    return localStorage.getItem('player_equipped_skin') || 'default';
+}
+
+function saveEquippedSkin(skinId) {
+    const unlocked = getUnlockedSkins().join(',');
+    if (window.AndroidInterface && window.AndroidInterface.saveSkins) {
+        try {
+            window.AndroidInterface.saveSkins(unlocked, skinId);
+            return;
+        } catch (e) {
+            console.error("Error calling saveSkins:", e);
+        }
+    }
+    localStorage.setItem('player_equipped_skin', skinId);
+}
+
 class Paddle {
     constructor(game) {
         this.game = game;
@@ -211,7 +262,7 @@ class Paddle {
         this.y = game.height - 40;
         this.speed = 0;
         this.maxSpeed = 8;
-        this.color = '#8b5cf6';
+        this.color = game.getEquippedSkinColor ? game.getEquippedSkinColor() : '#8b5cf6';
         this.baseWidth = 100; // Adjusted for Portrait (was 120)
         this.isInverted = false;
     }
@@ -233,9 +284,10 @@ class Paddle {
 
     draw(ctx) {
         // Neon Glow effect
-        ctx.fillStyle = this.color;
+        const baseColor = this.isInverted ? '#dc2626' : (this.game.getEquippedSkinColor ? this.game.getEquippedSkinColor() : '#8b5cf6');
+        ctx.fillStyle = baseColor;
         ctx.shadowBlur = 15;
-        ctx.shadowColor = this.color;
+        ctx.shadowColor = baseColor;
         ctx.beginPath();
         ctx.roundRect(this.x, this.y, this.width, this.height, 10);
         ctx.fill();
@@ -685,6 +737,16 @@ class Game {
         this.scoreMultiplier = 1;
         this.shopOpenedFrom = 'menu'; // Track if shop opened from 'menu' or 'pause'
         this.toastTimeout = null;
+        this.flawlessStreak = true;
+
+        this.skinsDict = {
+            'default': { name: "Estándar Púrpura", color: "#8b5cf6", desc: "Aspecto inicial" },
+            'neon_green': { name: "Verde Neón", color: "#10b981", desc: "Racha perfecta Zona 1 (Lvl 10)" },
+            'sunset_orange': { name: "Naranja Atardecer", color: "#f97316", desc: "Racha perfecta Zona 2 (Lvl 20)" },
+            'electric_blue': { name: "Azul Eléctrico", color: "#06b6d4", desc: "Racha perfecta Zona 3 (Lvl 30)" },
+            'hot_pink': { name: "Rosa Intenso", color: "#ec4899", desc: "Racha perfecta Zona 4 (Lvl 40)" },
+            'golden_legend': { name: "Leyenda Dorada", color: "#eab308", desc: "Racha perfecta Zona 5 (Lvl 50)" }
+        };
 
         // Set global game instance reference for native bridge access
         window.gameInstance = this;
@@ -701,6 +763,12 @@ class Game {
             this.lastTime = timestamp;
             requestAnimationFrame(this.loop);
         });
+    }
+
+    getEquippedSkinColor() {
+        const equipped = getEquippedSkin();
+        const skin = this.skinsDict ? this.skinsDict[equipped] : null;
+        return skin ? skin.color : "#8b5cf6";
     }
 
     triggerShake(duration, intensity) {
@@ -765,11 +833,74 @@ class Game {
             this.resumeGame();
             this.startGame();
         });
-        document.getElementById('quit-btn').addEventListener('click', () => this.quitToMenu());
+        document.getElementById('quit-btn').addEventListener('click', () => {
+            this.saveGameState();
+            this.quitToMenu();
+        });
+
+        // Level Select Listeners
+        const lvlSelectBtn = document.getElementById('level-select-btn');
+        if (lvlSelectBtn) {
+            lvlSelectBtn.addEventListener('click', () => {
+                this.renderLevelSelector();
+                this.renderSkinsSelector();
+                document.getElementById('level-select-screen').classList.remove('hidden');
+                
+                // Show levels tab by default
+                document.getElementById('panel-levels').classList.remove('hidden');
+                document.getElementById('panel-skins').classList.add('hidden');
+                document.getElementById('tab-levels-btn').classList.add('active-tab');
+                document.getElementById('tab-skins-btn').classList.remove('active-tab');
+            });
+        }
+
+        const closeLvlSelectBtn = document.getElementById('close-level-select-btn');
+        if (closeLvlSelectBtn) {
+            closeLvlSelectBtn.addEventListener('click', () => {
+                document.getElementById('level-select-screen').classList.add('hidden');
+            });
+        }
+
+        const tabLevelsBtn = document.getElementById('tab-levels-btn');
+        if (tabLevelsBtn) {
+            tabLevelsBtn.addEventListener('click', () => {
+                document.getElementById('panel-levels').classList.remove('hidden');
+                document.getElementById('panel-skins').classList.add('hidden');
+                tabLevelsBtn.classList.add('active-tab');
+                document.getElementById('tab-skins-btn').classList.remove('active-tab');
+            });
+        }
+
+        const tabSkinsBtn = document.getElementById('tab-skins-btn');
+        if (tabSkinsBtn) {
+            tabSkinsBtn.addEventListener('click', () => {
+                document.getElementById('panel-levels').classList.add('hidden');
+                document.getElementById('panel-skins').classList.remove('hidden');
+                tabSkinsBtn.classList.add('active-tab');
+                document.getElementById('tab-levels-btn').classList.remove('active-tab');
+            });
+        }
         document.getElementById('next-level-btn').addEventListener('click', () => this.loadNextLevel());
         
         document.getElementById('restart-btn').addEventListener('click', () => this.startGame());
         document.getElementById('play-again-btn').addEventListener('click', () => this.startGame());
+
+        // Game Over and Win screens Menu Principal button listeners
+        const gameOverQuitBtn = document.getElementById('game-over-quit-btn');
+        if (gameOverQuitBtn) {
+            gameOverQuitBtn.addEventListener('click', () => {
+                document.getElementById('game-over-screen').classList.add('hidden');
+                this.quitToMenu();
+            });
+        }
+
+        const winQuitBtn = document.getElementById('win-quit-btn');
+        if (winQuitBtn) {
+            winQuitBtn.addEventListener('click', () => {
+                document.getElementById('win-screen').classList.add('hidden');
+                this.quitToMenu();
+            });
+        }
 
         // Resume Saved Session Button
         const resumeSessionBtn = document.getElementById('resume-session-btn');
@@ -1196,9 +1327,17 @@ class Game {
         // Clear power-up states
         this.paddle.width = this.paddle.baseWidth;
         this.paddle.isInverted = false;
-        this.paddle.color = '#8b5cf6';
+        this.paddle.color = this.getEquippedSkinColor();
         
         this.balls = [new Ball(this)];
+
+        // Update zone background for dynamic backgrounds
+        this.updateZoneBackground(level);
+
+        // Flawless Streak setup on start of zones
+        if (level === 1 || level === 11 || level === 21 || level === 31 || level === 41) {
+            this.flawlessStreak = true;
+        }
 
         const { rows, cols, layout } = this.generateLevelLayout(level);
         const padding = 6;
@@ -1223,6 +1362,7 @@ class Game {
 
     loseLife() {
         this.lives--;
+        this.flawlessStreak = false;
         this.updateUI();
         this.triggerShake(0.45, 18);
         playSFX('lost');
@@ -1428,19 +1568,83 @@ class Game {
     }
 
     levelUp() {
-        // Persist collected coins before moving to next level
         this.persistCollectedCoins();
         document.getElementById('game-buffs-container').classList.add('hidden');
 
-        // Save progress to Shared Preferences
-        saveGameProgress(this.level + 1, this.score);
+        const isBossLevel = (this.level === 10 || this.level === 20 || this.level === 30 || this.level === 40 || this.level === 50);
 
-        this.state = 'LEVEL_CLEARED';
-        pauseBGMusic();
-        playSFX('powerup');
+        if (isBossLevel) {
+            // Save progress to Shared Preferences first
+            saveGameProgress(this.level + 1, this.score);
+            this.state = 'CHEST_REWARD';
+            pauseBGMusic();
+            playSFX('powerup');
 
-        document.getElementById('cleared-score').textContent = this.score;
-        document.getElementById('level-cleared-screen').classList.remove('hidden');
+            const chestModal = document.getElementById('chest-modal');
+            const chestAnim = document.getElementById('chest-animation-container');
+            const chestDesc = document.getElementById('chest-modal-desc');
+            const closeChestBtn = document.getElementById('close-chest-btn');
+
+            chestModal.classList.remove('hidden');
+            closeChestBtn.classList.add('hidden');
+
+            // Reset animation
+            chestAnim.textContent = '📦';
+            chestAnim.className = 'chest-shake';
+            chestDesc.textContent = 'Abriendo el cofre de la racha perfecta...';
+
+            if (this.flawlessStreak) {
+                let skinId = '';
+                let skinName = '';
+                if (this.level === 10) { skinId = 'neon_green'; skinName = 'Verde Neón'; }
+                else if (this.level === 20) { skinId = 'sunset_orange'; skinName = 'Naranja Atardecer'; }
+                else if (this.level === 30) { skinId = 'electric_blue'; skinName = 'Azul Eléctrico'; }
+                else if (this.level === 40) { skinId = 'hot_pink'; skinName = 'Rosa Intenso'; }
+                else if (this.level === 50) { skinId = 'golden_legend'; skinName = 'Leyenda Dorada'; }
+
+                const unlocked = getUnlockedSkins();
+                if (!unlocked.includes(skinId)) {
+                    unlocked.push(skinId);
+                    saveUnlockedSkins(unlocked);
+                }
+
+                setTimeout(() => {
+                    chestAnim.textContent = '🎁';
+                    playSFX('powerup');
+                    setTimeout(() => {
+                        chestAnim.className = '';
+                        chestAnim.textContent = '🎨';
+                        chestDesc.innerHTML = `¡Felicidades! Completaste la zona sin perder vidas y desbloqueaste el aspecto <span style="color: ${this.skinsDict[skinId].color}; font-weight: bold;">${skinName}</span>.`;
+                        closeChestBtn.classList.remove('hidden');
+                    }, 1200);
+                }, 1200);
+            } else {
+                setTimeout(() => {
+                    chestAnim.className = '';
+                    chestAnim.textContent = '🔒';
+                    chestDesc.textContent = 'Nivel superado, pero el cofre requiere una racha sin perder vidas. ¡Inténtalo de nuevo!';
+                    closeChestBtn.classList.remove('hidden');
+                }, 1500);
+            }
+
+            const handleClose = () => {
+                chestModal.classList.add('hidden');
+                closeChestBtn.removeEventListener('click', handleClose);
+                
+                this.state = 'LEVEL_CLEARED';
+                document.getElementById('cleared-score').textContent = this.score;
+                document.getElementById('level-cleared-screen').classList.remove('hidden');
+            };
+            closeChestBtn.addEventListener('click', handleClose);
+        } else {
+            saveGameProgress(this.level + 1, this.score);
+            this.state = 'LEVEL_CLEARED';
+            pauseBGMusic();
+            playSFX('powerup');
+
+            document.getElementById('cleared-score').textContent = this.score;
+            document.getElementById('level-cleared-screen').classList.remove('hidden');
+        }
     }
 
     loadNextLevel() {
@@ -1599,7 +1803,8 @@ class Game {
             },
             scoreMultiplier: this.scoreMultiplier,
             doubleScoreCount: this.doubleScoreCount,
-            superPowerCount: this.superPowerCount
+            superPowerCount: this.superPowerCount,
+            flawlessStreak: this.flawlessStreak
         };
 
         saveSessionState(JSON.stringify(stateObj));
@@ -1658,6 +1863,7 @@ class Game {
             }
 
             this.scoreMultiplier = state.scoreMultiplier || 1;
+            this.flawlessStreak = (state.flawlessStreak !== undefined) ? state.flawlessStreak : false;
             // Always retrieve global stock from localStorage to prevent overwrite from stale session saves
             this.doubleScoreCount = getDoubleScoreCount();
             this.superPowerCount = getSuperPowerCount();
@@ -2295,6 +2501,171 @@ class Game {
         }
 
         alert("has cobrado tus 50 monedas de regalo diarias ");
+    }
+
+    updateZoneBackground(level) {
+        const container = document.querySelector('.game-container');
+        if (!container) return;
+        let bg = '';
+        if (level <= 10) {
+            bg = 'radial-gradient(circle at center, #1e1b4b 0%, #0f172a 100%)';
+        } else if (level <= 20) {
+            bg = 'radial-gradient(circle at center, #064e3b 0%, #022c22 100%)';
+        } else if (level <= 30) {
+            bg = 'radial-gradient(circle at center, #4c1d95 0%, #0f172a 100%)';
+        } else if (level <= 40) {
+            bg = 'radial-gradient(circle at center, #7f1d1d 0%, #020617 100%)';
+        } else {
+            bg = 'radial-gradient(circle at center, #78350f 0%, #020617 100%)';
+        }
+        container.style.background = bg;
+    }
+
+    renderLevelSelector() {
+        const grid = document.getElementById('levels-grid');
+        if (!grid) return;
+        grid.innerHTML = '';
+
+        let maxLevel = 1;
+        if (window.AndroidInterface && window.AndroidInterface.getMaxLevel) {
+            maxLevel = window.AndroidInterface.getMaxLevel();
+        } else {
+            maxLevel = parseInt(localStorage.getItem('max_level') || '1', 10);
+        }
+
+        for (let i = 1; i <= 50; i++) {
+            const btn = document.createElement('button');
+            btn.className = 'level-item-btn';
+            if (i > maxLevel) {
+                btn.classList.add('locked');
+                btn.innerHTML = '🔒';
+            } else {
+                btn.textContent = i;
+                btn.addEventListener('click', () => {
+                    playSFX('bounce');
+                    document.getElementById('level-select-screen').classList.add('hidden');
+                    this.startAtLevel(i);
+                });
+            }
+            grid.appendChild(btn);
+        }
+    }
+
+    renderSkinsSelector() {
+        const container = document.getElementById('skins-container');
+        if (!container) return;
+        container.innerHTML = '';
+
+        const unlocked = getUnlockedSkins();
+        const equipped = getEquippedSkin();
+
+        for (const [id, skin] of Object.entries(this.skinsDict)) {
+            const item = document.createElement('div');
+            item.className = 'skin-item';
+            if (id === equipped) {
+                item.classList.add('equipped');
+            }
+
+            const info = document.createElement('div');
+            info.className = 'skin-item-info';
+
+            const name = document.createElement('span');
+            name.className = 'skin-item-name';
+            name.textContent = skin.name;
+
+            const desc = document.createElement('span');
+            desc.className = 'skin-item-desc';
+            desc.textContent = skin.desc;
+
+            info.appendChild(name);
+            info.appendChild(desc);
+
+            const previewContainer = document.createElement('div');
+            previewContainer.className = 'skin-preview-container';
+
+            const preview = document.createElement('div');
+            preview.className = 'skin-preview';
+            preview.style.backgroundColor = skin.color;
+            preview.style.color = skin.color;
+
+            previewContainer.appendChild(preview);
+
+            const button = document.createElement('button');
+            button.className = 'equip-btn';
+
+            const isUnlocked = unlocked.includes(id);
+            if (id === equipped) {
+                button.classList.add('equipped');
+                button.textContent = 'EQUIPADO';
+            } else if (isUnlocked) {
+                button.textContent = 'EQUIPAR';
+                button.addEventListener('click', () => {
+                    playSFX('bounce');
+                    saveEquippedSkin(id);
+                    if (this.paddle) {
+                        this.paddle.color = skin.color;
+                    }
+                    this.renderSkinsSelector();
+                });
+            } else {
+                button.classList.add('locked');
+                button.textContent = 'BLOQUEADO';
+            }
+
+            previewContainer.appendChild(button);
+            item.appendChild(info);
+            item.appendChild(previewContainer);
+
+            container.appendChild(item);
+        }
+    }
+
+    startAtLevel(level) {
+        clearSessionState();
+        this.state = 'PLAYING';
+        this.level = level;
+        this.score = 0;
+        this.lives = 3;
+
+        document.getElementById('start-screen').classList.add('hidden');
+        document.getElementById('game-over-screen').classList.add('hidden');
+        document.getElementById('win-screen').classList.add('hidden');
+        document.getElementById('pause-screen').classList.add('hidden');
+        document.getElementById('level-cleared-screen').classList.add('hidden');
+
+        this.paddleTimer = 0;
+        this.fireballTimer = 0;
+        this.speedTimer = 0;
+        this.invertTimer = 0;
+        this.doubleScoreTimer = 0;
+
+        this.paddle = new Paddle(this);
+        this.balls = [new Ball(this)];
+        this.powerUps = [];
+        this.particles = [];
+        this.shakeDuration = 0;
+        this.coinsCollected = 0;
+        this.scoreMultiplier = 1;
+
+        this.doubleScoreCount = getDoubleScoreCount();
+        this.superPowerCount = getSuperPowerCount();
+
+        document.getElementById('game-buffs-container').classList.remove('hidden');
+        this.updateBuffButtonsUI();
+        
+        this.updateUI();
+        this.updateRecordDisplay();
+        
+        startBGMusic();
+        this.updateMuteButtonVisual();
+        
+        if (level === 1 || level === 11 || level === 21 || level === 31 || level === 41) {
+            this.flawlessStreak = true;
+        } else {
+            this.flawlessStreak = false;
+        }
+
+        this.loadLevel(this.level);
     }
 
     loop(timestamp) {

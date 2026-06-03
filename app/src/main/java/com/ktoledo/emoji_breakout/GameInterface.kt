@@ -18,10 +18,7 @@ class GameInterface(private val context: Context, private val webView: WebView) 
     private val cloudRepository: ScoreRepository = FirebaseScoreRepository(context)
 
     init {
-        // Otorgar al menos 150 monedas al jugador para pruebas de la tienda
-        if (preferences.getInt("player_coins", 0) < 150) {
-            preferences.edit().putInt("player_coins", 150).apply()
-        }
+        // Standard production game behavior (no dev overrides)
     }
 
     @JavascriptInterface
@@ -61,22 +58,26 @@ class GameInterface(private val context: Context, private val webView: WebView) 
 
         // Save High Score
         val currentHighScore = preferences.getInt("high_score", 0)
+        var isNewHighScore = false
         if (score > currentHighScore) {
             editor.putInt("high_score", score)
+            isNewHighScore = true
         }
         editor.apply()
 
-        // Sincronizar con Firebase de fondo con el nickname y perfil guardados
-        val savedNickname = preferences.getString("player_nickname", "JugadorAnónimo") ?: "JugadorAnónimo"
-        val savedProfilePic = preferences.getString("player_profile_pic", "") ?: ""
-        cloudRepository.updateHighScore(
-            playerName = savedNickname,
-            score = score,
-            maxLevel = level,
-            profilePic = savedProfilePic,
-            onSuccess = { Log.d(TAG, "Progreso sincronizado automáticamente en Firebase.") },
-            onFailure = { e -> Log.e(TAG, "Error al sincronizar progreso automático en Firebase: ${e.message}") }
-        )
+        // Sincronizar con Firebase de fondo solo si es una nueva puntuación récord
+        if (isNewHighScore) {
+            val savedNickname = preferences.getString("player_nickname", "JugadorAnónimo") ?: "JugadorAnónimo"
+            val savedProfilePic = preferences.getString("player_profile_pic", "") ?: ""
+            cloudRepository.updateHighScore(
+                playerName = savedNickname,
+                score = score,
+                maxLevel = level,
+                profilePic = savedProfilePic,
+                onSuccess = { Log.d(TAG, "Progreso sincronizado automáticamente en Firebase.") },
+                onFailure = { e -> Log.e(TAG, "Error al sincronizar progreso automático en Firebase: ${e.message}") }
+            )
+        }
     }
 
     @JavascriptInterface
@@ -121,8 +122,10 @@ class GameInterface(private val context: Context, private val webView: WebView) 
 
         // Guardar puntuación récord
         val currentHighScore = preferences.getInt("high_score", 0)
+        var isNewHighScore = false
         if (score > currentHighScore) {
             editor.putInt("high_score", score)
+            isNewHighScore = true
         }
 
         // Guardar apodo y foto del jugador localmente
@@ -130,15 +133,17 @@ class GameInterface(private val context: Context, private val webView: WebView) 
         editor.putString("player_profile_pic", profilePic)
         editor.apply()
 
-        // Subir récord a Firebase Realtime Database
-        cloudRepository.updateHighScore(
-            playerName = nickname,
-            score = score,
-            maxLevel = level,
-            profilePic = profilePic,
-            onSuccess = { Log.d(TAG, "Récord subido a Firebase con éxito.") },
-            onFailure = { e -> Log.e(TAG, "Error al subir récord a Firebase: ${e.message}") }
-        )
+        // Subir récord a Firebase Realtime Database solo si es una nueva puntuación récord
+        if (isNewHighScore) {
+            cloudRepository.updateHighScore(
+                playerName = nickname,
+                score = score,
+                maxLevel = level,
+                profilePic = profilePic,
+                onSuccess = { Log.d(TAG, "Récord subido a Firebase con éxito.") },
+                onFailure = { e -> Log.e(TAG, "Error al subir récord a Firebase: ${e.message}") }
+            )
+        }
     }
 
     @JavascriptInterface
@@ -321,6 +326,25 @@ class GameInterface(private val context: Context, private val webView: WebView) 
     @JavascriptInterface
     fun getLastDailyGiftClaimTime(): Long {
         return preferences.getLong("last_daily_gift_claim_time", 0L)
+    }
+
+    @JavascriptInterface
+    fun saveSkins(unlockedSkins: String, equippedSkin: String) {
+        preferences.edit()
+            .putString("player_unlocked_skins", unlockedSkins)
+            .putString("player_equipped_skin", equippedSkin)
+            .apply()
+        Log.d(TAG, "Skins updated. Unlocked: $unlockedSkins, Equipped: $equippedSkin")
+    }
+
+    @JavascriptInterface
+    fun getUnlockedSkins(): String {
+        return preferences.getString("player_unlocked_skins", "default") ?: "default"
+    }
+
+    @JavascriptInterface
+    fun getEquippedSkin(): String {
+        return preferences.getString("player_equipped_skin", "default") ?: "default"
     }
 }
 

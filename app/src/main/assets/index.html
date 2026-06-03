@@ -41,11 +41,12 @@
 
         <h1>EMOJI BREAKOUT</h1>
         <p class="record-text">RÉCORD: <span id="high-score-display">0</span></p>
-        <button id="resume-session-btn" class="hidden">CONTINUAR</button>
-        <button id="start-btn">JUGAR</button>
-        <button id="leaderboard-btn">RANKING</button>
-        <button id="profile-btn">PERFIL</button>
-        <button id="shop-btn">TIENDA</button>
+        <button id="resume-session-btn" class="menu-btn hidden">CONTINUAR</button>
+        <button id="start-btn" class="menu-btn">JUGAR</button>
+        <button id="level-select-btn" class="menu-btn">NIVELES</button>
+        <button id="leaderboard-btn" class="menu-btn">RANKING</button>
+        <button id="profile-btn" class="menu-btn">PERFIL</button>
+        <button id="shop-btn" class="menu-btn">TIENDA</button>
     </div>
 
     <!-- Pantalla de Pausa -->
@@ -54,7 +55,7 @@
         <button id="resume-btn" class="menu-btn">REANUDAR</button>
         <button id="pause-shop-btn" class="menu-btn">TIENDA</button>
         <button id="restart-pause-btn" class="menu-btn">REINICIAR</button>
-        <button id="quit-btn" class="menu-btn">SALIR</button>
+        <button id="quit-btn" class="menu-btn">MENÚ PRINCIPAL</button>
     </div>
 
     <!-- Pantalla de Nivel Completado -->
@@ -68,14 +69,16 @@
     <div class="ui-overlay hidden" id="game-over-screen">
         <h1>GAME OVER</h1>
         <p>Puntuación: <span id="final-score">0</span></p>
-        <button id="restart-btn">REINTENTAR</button>
+        <button id="restart-btn" class="menu-btn">REINTENTAR</button>
+        <button id="game-over-quit-btn" class="menu-btn">MENÚ PRINCIPAL</button>
     </div>
 
     <!-- Pantalla de Victoria Final -->
     <div class="ui-overlay hidden" id="win-screen">
         <h1>¡VICTORIA TOTAL!</h1>
         <p>¡Has completado los 50 niveles!</p>
-        <button id="play-again-btn">JUGAR DE NUEVO</button>
+        <button id="play-again-btn" class="menu-btn">JUGAR DE NUEVO</button>
+        <button id="win-quit-btn" class="menu-btn">MENÚ PRINCIPAL</button>
     </div>
 
     <!-- Modal de Nuevo Récord (Nickname Prompt) -->
@@ -191,6 +194,36 @@
                 NO, GRACIAS
             </button>
         </div>
+    </div>
+
+    <!-- Pantalla de Selector de Niveles y Skins -->
+    <div class="ui-overlay hidden" id="level-select-screen">
+        <h1 style="font-size: 2.2rem; margin-bottom: 0.5rem; text-shadow: 0 0 15px rgba(139, 92, 246, 0.4);">SELECCIONAR NIVEL</h1>
+        
+        <div class="tab-container" style="display: flex; gap: 10px; margin-bottom: 15px;">
+            <button id="tab-levels-btn" class="tab-btn active-tab" style="padding: 0.5rem 1.5rem; font-size: 1rem;">NIVELES</button>
+            <button id="tab-skins-btn" class="tab-btn" style="padding: 0.5rem 1.5rem; font-size: 1rem;">ASPECTOS</button>
+        </div>
+
+        <div id="panel-levels" class="scroll-panel" style="width: 100%;">
+            <div class="levels-grid" id="levels-grid"></div>
+        </div>
+
+        <div id="panel-skins" class="scroll-panel hidden" style="width: 100%;">
+            <div class="skins-container" id="skins-container"></div>
+        </div>
+
+        <button id="close-level-select-btn" class="menu-btn" style="margin-top: 15px; padding: 0.6rem 2rem;">VOLVER</button>
+    </div>
+
+    <!-- Modal de Cofre de Recompensa -->
+    <div class="ui-overlay hidden" id="chest-modal" style="z-index: 20;">
+        <h1 id="chest-modal-title">¡RACHA PERFECTA!</h1>
+        <div id="chest-animation-container" style="font-size: 6rem; margin: 1.5rem 0; transition: transform 0.5s;">
+            📦
+        </div>
+        <p id="chest-modal-desc" style="font-size: 1.1rem; margin-bottom: 1.5rem; max-width: 80%;">Abriendo el cofre de la racha perfecta...</p>
+        <button id="close-chest-btn" class="menu-btn hidden" style="padding: 0.6rem 2rem;">CONTINUAR</button>
     </div>
 
 </div>
