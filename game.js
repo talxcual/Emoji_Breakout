@@ -3833,18 +3833,16 @@ document.addEventListener("DOMContentLoaded", function() {
 // ==========================================
 // FIREBASE BACKEND INTEGRATION (LEADERBOARD)
 // ==========================================
-/*
 const firebaseConfig = {
-    apiKey: "PEGAR_AQUI_API_KEY",
-    authDomain: "PEGAR_AQUI_AUTH_DOMAIN",
-    databaseURL: "PEGAR_AQUI_DATABASE_URL",
-    projectId: "PEGAR_AQUI_PROJECT_ID",
-    storageBucket: "PEGAR_AQUI_STORAGE_BUCKET",
-    messagingSenderId: "PEGAR_AQUI_MESSAGING_SENDER_ID",
-    appId: "PEGAR_AQUI_APP_ID"
+    apiKey: "AIzaSyAhpxzczueuVNJlOr8ySLaaRprJjXLPriU",
+    authDomain: "homero-chino-clicker.firebaseapp.com",
+    databaseURL: "https://homero-chino-clicker-default-rtdb.firebaseio.com",
+    projectId: "homero-chino-clicker",
+    storageBucket: "homero-chino-clicker.firebasestorage.app",
+    messagingSenderId: "811243337021",
+    appId: "1:811243337021:web:6a4402334fd939c88e0154"
 };
 firebase.initializeApp(firebaseConfig);
-*/
 
 async function cargarRankingGlobal() {
     const tbody = getCachedElement('leaderboard-tbody');
