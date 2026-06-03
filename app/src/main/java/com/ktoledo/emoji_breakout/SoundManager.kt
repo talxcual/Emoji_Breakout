@@ -44,6 +44,8 @@ class SoundManager private constructor(private val context: Context) {
         loadSFX("brick", "brick.mp3")
         loadSFX("powerup", "powerup.mp3")
         loadSFX("lost", "lost.mp3")
+        loadSFX("coin", "coin.mp3")
+        loadSFX("shop", "shop.mp3")
 
         // Setup background music player
         setupBackgroundMusic()

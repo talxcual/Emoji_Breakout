@@ -3,8 +3,11 @@ package com.ktoledo.emoji_breakout
 import android.content.Context
 import android.util.Log
 import android.webkit.JavascriptInterface
+import android.webkit.WebView
+import org.json.JSONArray
+import org.json.JSONObject
 
-class GameInterface(private val context: Context) {
+class GameInterface(private val context: Context, private val webView: WebView) {
 
     companion object {
         private const val TAG = "GameInterface"
@@ -12,7 +15,14 @@ class GameInterface(private val context: Context) {
 
     private val soundManager = SoundManager.getInstance(context)
     private val preferences = context.getSharedPreferences("EmojiBreakoutPrefs", Context.MODE_PRIVATE)
-    private val cloudRepository: ScoreRepository = FirebaseScoreRepository()
+    private val cloudRepository: ScoreRepository = FirebaseScoreRepository(context)
+
+    init {
+        // Otorgar al menos 150 monedas al jugador para pruebas de la tienda
+        if (preferences.getInt("player_coins", 0) < 150) {
+            preferences.edit().putInt("player_coins", 150).apply()
+        }
+    }
 
     @JavascriptInterface
     fun playSFX(name: String) {
@@ -47,25 +57,98 @@ class GameInterface(private val context: Context) {
         val currentMaxLevel = preferences.getInt("max_level", 1)
         if (level > currentMaxLevel) {
             editor.putInt("max_level", level)
-            Log.d(TAG, "Guardado progreso: Máximo nivel alcanzado = $level")
         }
 
         // Save High Score
         val currentHighScore = preferences.getInt("high_score", 0)
         if (score > currentHighScore) {
             editor.putInt("high_score", score)
-            Log.d(TAG, "Guardado progreso: Nuevo High Score = $score")
-            
-            // Mock upload to Firebase Cloud
+        }
+        editor.apply()
+
+        // Sincronizar con Firebase de fondo con el nickname y perfil guardados
+        val savedNickname = preferences.getString("player_nickname", "JugadorAnónimo") ?: "JugadorAnónimo"
+        val savedProfilePic = preferences.getString("player_profile_pic", "") ?: ""
+        cloudRepository.updateHighScore(
+            playerName = savedNickname,
+            score = score,
+            maxLevel = level,
+            profilePic = savedProfilePic,
+            onSuccess = { Log.d(TAG, "Progreso sincronizado automáticamente en Firebase.") },
+            onFailure = { e -> Log.e(TAG, "Error al sincronizar progreso automático en Firebase: ${e.message}") }
+        )
+    }
+
+    @JavascriptInterface
+    fun saveProgressWithNickname(level: Int, score: Int, nickname: String) {
+        val savedProfilePic = preferences.getString("player_profile_pic", "") ?: ""
+        saveProgressWithProfile(level, score, nickname, savedProfilePic)
+    }
+
+    @JavascriptInterface
+    fun saveUserProfile(nickname: String, profilePic: String) {
+        val editor = preferences.edit()
+        editor.putString("player_nickname", nickname)
+        editor.putString("player_profile_pic", profilePic)
+        editor.apply()
+        Log.d(TAG, "Perfil de usuario actualizado localmente.")
+        
+        // Sincronizar también con Firebase si el usuario está autenticado
+        val user = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser
+        if (user != null) {
+            val currentHighScore = preferences.getInt("high_score", 0)
+            val currentMaxLevel = preferences.getInt("max_level", 1)
             cloudRepository.updateHighScore(
-                userId = "JugadorLocal",
-                score = score,
-                onSuccess = { Log.d(TAG, "High score sincronizado en la nube.") },
-                onFailure = { e -> Log.e(TAG, "Error al sincronizar puntuación en la nube: ${e.message}") }
+                playerName = nickname,
+                score = currentHighScore,
+                maxLevel = currentMaxLevel,
+                profilePic = profilePic,
+                onSuccess = { Log.d(TAG, "Perfil sincronizado con Firebase.") },
+                onFailure = { e -> Log.e(TAG, "Error al sincronizar perfil con Firebase: ${e.message}") }
             )
         }
+    }
 
+    @JavascriptInterface
+    fun saveProgressWithProfile(level: Int, score: Int, nickname: String, profilePic: String) {
+        val editor = preferences.edit()
+        
+        // Guardar nivel máximo
+        val currentMaxLevel = preferences.getInt("max_level", 1)
+        if (level > currentMaxLevel) {
+            editor.putInt("max_level", level)
+        }
+
+        // Guardar puntuación récord
+        val currentHighScore = preferences.getInt("high_score", 0)
+        if (score > currentHighScore) {
+            editor.putInt("high_score", score)
+        }
+
+        // Guardar apodo y foto del jugador localmente
+        editor.putString("player_nickname", nickname)
+        editor.putString("player_profile_pic", profilePic)
         editor.apply()
+
+        // Subir récord a Firebase Realtime Database
+        cloudRepository.updateHighScore(
+            playerName = nickname,
+            score = score,
+            maxLevel = level,
+            profilePic = profilePic,
+            onSuccess = { Log.d(TAG, "Récord subido a Firebase con éxito.") },
+            onFailure = { e -> Log.e(TAG, "Error al subir récord a Firebase: ${e.message}") }
+        )
+    }
+
+    @JavascriptInterface
+    fun getPlayerNickname(): String {
+        return preferences.getString("player_nickname", "") ?: ""
+    }
+
+    @JavascriptInterface
+    fun getPlayerProfilePic(): String {
+        return preferences.getString("player_profile_pic", "") ?: ""
     }
 
     @JavascriptInterface
@@ -77,4 +160,167 @@ class GameInterface(private val context: Context) {
     fun getHighScore(): Int {
         return preferences.getInt("high_score", 0)
     }
+
+    // --- LEADERBOARD GLOBAL (TOP 50) ---
+
+    @JavascriptInterface
+    fun fetchLeaderboard() {
+        Log.d(TAG, "Iniciando descarga del Leaderboard desde Firebase...")
+        cloudRepository.getGlobalLeaderboard(
+            onSuccess = { list ->
+                val jsonString = serializeLeaderboard(list)
+                webView.post {
+                    webView.evaluateJavascript(
+                        "if (window.gameInstance) window.gameInstance.onLeaderboardLoaded('${escapeJson(jsonString)}');",
+                        null
+                    )
+                }
+            },
+            onFailure = { e ->
+                Log.e(TAG, "Error al recuperar Leaderboard: ${e.message}")
+                webView.post {
+                    webView.evaluateJavascript(
+                        "if (window.gameInstance) window.gameInstance.onLeaderboardError('${escapeJson(e.message ?: "Error desconocido")}');",
+                        null
+                    )
+                }
+            }
+        )
+    }
+
+    private fun serializeLeaderboard(list: List<LeaderboardEntry>): String {
+        val jsonArray = JSONArray()
+        for (entry in list) {
+            val jsonObj = JSONObject()
+            jsonObj.put("name", entry.name)
+            jsonObj.put("score", entry.score)
+            jsonObj.put("maxLevel", entry.maxLevel)
+            jsonObj.put("profilePic", entry.profilePic)
+            jsonArray.put(jsonObj)
+        }
+        return jsonArray.toString()
+    }
+
+    private fun escapeJson(str: String): String {
+        return str.replace("\\", "\\\\").replace("'", "\\'")
+    }
+
+    // --- SESIÓN DE JUEGO PERSISTENTE (GUARDAR Y REANUDAR ESTADO) ---
+
+    @JavascriptInterface
+    fun saveSession(jsonState: String) {
+        preferences.edit().putString("saved_session", jsonState).apply()
+        Log.d(TAG, "Sesión de juego guardada con éxito.")
+    }
+
+    @JavascriptInterface
+    fun loadSession(): String? {
+        val session = preferences.getString("saved_session", null)
+        Log.d(TAG, "Cargando sesión de juego. ¿Existe? ${session != null}")
+        return session
+    }
+
+    @JavascriptInterface
+    fun clearSession() {
+        preferences.edit().remove("saved_session").apply()
+        Log.d(TAG, "Sesión de juego borrada.")
+    }
+
+    // --- CONTROL DE AUTENTICACIÓN (GOOGLE Y PERFIL PERSONALIZADO) ---
+
+    @JavascriptInterface
+    fun loginWithGoogle() {
+        (context as? MainActivity)?.let { activity ->
+            activity.runOnUiThread {
+                activity.launchGoogleSignIn()
+            }
+        }
+    }
+
+    @JavascriptInterface
+    fun selectProfilePicture() {
+        (context as? MainActivity)?.let { activity ->
+            activity.runOnUiThread {
+                activity.launchGalleryPicker()
+            }
+        }
+    }
+
+    @JavascriptInterface
+    fun logout() {
+        (context as? MainActivity)?.let { activity ->
+            activity.runOnUiThread {
+                activity.logoutFromFirebase()
+            }
+        }
+    }
+
+    @JavascriptInterface
+    fun getAuthStatus(): String {
+        return (context as? MainActivity)?.getCurrentUserStatus() ?: "{}"
+    }
+
+    @JavascriptInterface
+    fun saveCoins(coins: Int) {
+        preferences.edit().putInt("player_coins", coins).apply()
+        Log.d(TAG, "Monedas del usuario actualizadas a: $coins")
+    }
+
+    @JavascriptInterface
+    fun getCoins(): Int {
+        return preferences.getInt("player_coins", 0)
+    }
+
+    @JavascriptInterface
+    fun saveDoubleScoreCount(count: Int) {
+        preferences.edit().putInt("player_double_score_count", count).apply()
+        Log.d(TAG, "Double score count updated to: $count")
+    }
+
+    @JavascriptInterface
+    fun getDoubleScoreCount(): Int {
+        return preferences.getInt("player_double_score_count", 0)
+    }
+
+    @JavascriptInterface
+    fun saveSuperPowerCount(count: Int) {
+        preferences.edit().putInt("player_super_power_count", count).apply()
+        Log.d(TAG, "Super power count updated to: $count")
+    }
+
+    @JavascriptInterface
+    fun getSuperPowerCount(): Int {
+        return preferences.getInt("player_super_power_count", 0)
+    }
+
+    @JavascriptInterface
+    fun saveShopLimits(countToday: Int, firstPurchaseTime: Long) {
+        preferences.edit()
+            .putInt("shop_purchase_count_today", countToday)
+            .putLong("shop_first_purchase_time", firstPurchaseTime)
+            .apply()
+        Log.d(TAG, "Shop limits updated today: $countToday, first time: $firstPurchaseTime")
+    }
+
+    @JavascriptInterface
+    fun getShopPurchaseCountToday(): Int {
+        return preferences.getInt("shop_purchase_count_today", 0)
+    }
+
+    @JavascriptInterface
+    fun getShopFirstPurchaseTime(): Long {
+        return preferences.getLong("shop_first_purchase_time", 0L)
+    }
+
+    @JavascriptInterface
+    fun saveLastDailyGiftClaimTime(time: Long) {
+        preferences.edit().putLong("last_daily_gift_claim_time", time).apply()
+        Log.d(TAG, "Last daily gift claim time updated to: $time")
+    }
+
+    @JavascriptInterface
+    fun getLastDailyGiftClaimTime(): Long {
+        return preferences.getLong("last_daily_gift_claim_time", 0L)
+    }
 }
+

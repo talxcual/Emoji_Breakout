@@ -21,6 +21,7 @@
         </div>
         <div class="hud-row">
             <div class="hud-item">Nivel: <span id="level-display">1</span></div>
+            <div class="hud-item">🪙 <span id="coins-display">0</span></div>
             <div class="hud-item">Puntos: <span id="score-display">0</span></div>
         </div>
     </div>
@@ -28,17 +29,30 @@
     <!-- El Canvas del Juego -->
     <canvas id="gameCanvas"></canvas>
 
+    <!-- Zona Inferior de Información (Safe Area Push) -->
+    <div class="bottom-bar">
+        <span class="bottom-record-text">RÉCORD ACTUAL: <span id="bottom-high-score-display">0</span></span>
+    </div>
+
     <!-- Pantalla de Inicio (Main Menu) -->
     <div class="ui-overlay" id="start-screen">
+        <!-- Regalo Diario -->
+        <button id="daily-gift-btn" class="daily-gift-btn" title="Reclamar regalo diario de 50 monedas">🎁</button>
+
         <h1>EMOJI BREAKOUT</h1>
         <p class="record-text">RÉCORD: <span id="high-score-display">0</span></p>
+        <button id="resume-session-btn" class="hidden">CONTINUAR</button>
         <button id="start-btn">JUGAR</button>
+        <button id="leaderboard-btn">RANKING</button>
+        <button id="profile-btn">PERFIL</button>
+        <button id="shop-btn">TIENDA</button>
     </div>
 
     <!-- Pantalla de Pausa -->
     <div class="ui-overlay hidden" id="pause-screen">
         <h1>JUEGO PAUSADO</h1>
         <button id="resume-btn" class="menu-btn">REANUDAR</button>
+        <button id="pause-shop-btn" class="menu-btn">TIENDA</button>
         <button id="restart-pause-btn" class="menu-btn">REINICIAR</button>
         <button id="quit-btn" class="menu-btn">SALIR</button>
     </div>
@@ -62,6 +76,121 @@
         <h1>¡VICTORIA TOTAL!</h1>
         <p>¡Has completado los 50 niveles!</p>
         <button id="play-again-btn">JUGAR DE NUEVO</button>
+    </div>
+
+    <!-- Modal de Nuevo Récord (Nickname Prompt) -->
+    <div class="ui-overlay hidden" id="nickname-modal">
+        <h1>¡NUEVO RÉCORD!</h1>
+        <p>Introduce tu nombre para el Ranking:</p>
+        <input type="text" id="nickname-input" placeholder="Tu Apodo" maxlength="15">
+        <button id="save-nickname-btn">GUARDAR</button>
+    </div>
+
+    <!-- Pantalla de Leaderboard (Ranking Global) -->
+    <div class="ui-overlay hidden" id="leaderboard-screen">
+        <h1>RANKING GLOBAL</h1>
+        <div class="leaderboard-container">
+            <table class="leaderboard-table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Jugador</th>
+                        <th>Nivel</th>
+                        <th>Puntos</th>
+                    </tr>
+                </thead>
+                <tbody id="leaderboard-tbody">
+                    <!-- Filas cargadas dinámicamente -->
+                </tbody>
+            </table>
+        </div>
+        <button id="close-leaderboard-btn" class="menu-btn">VOLVER</button>
+    </div>
+
+    <!-- Pantalla de Perfil de Usuario (Login / Profile Customization) -->
+    <div class="ui-overlay hidden" id="profile-screen">
+        <h1>MI PERFIL</h1>
+        <div class="profile-card">
+            <div class="profile-avatar-container">
+                <img id="profile-avatar-preview" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'><circle cx='40' cy='40' r='40' fill='%238b5cf6'/><text x='40' y='50' font-size='32' text-anchor='middle' fill='white'>👤</text></svg>" alt="Avatar">
+                <button id="change-avatar-btn" class="avatar-edit-badge">✏️</button>
+            </div>
+            <div class="profile-info-fields">
+                <div class="profile-field-group">
+                    <label>Nombre de Jugador</label>
+                    <input type="text" id="profile-name-input" placeholder="Tu Apodo" maxlength="15">
+                </div>
+                <div class="profile-field-group">
+                    <label>Correo Electrónico (Opcional)</label>
+                    <input type="email" id="profile-email-input" placeholder="ejemplo@correo.com">
+                </div>
+            </div>
+            <div class="profile-login-providers">
+                <button id="google-login-btn" class="google-btn">
+                    <span class="google-icon">🌐</span> Iniciar con Google
+                </button>
+            </div>
+            <div class="profile-actions">
+                <button id="save-profile-btn" class="action-btn green-btn">GUARDAR</button>
+                <button id="logout-btn" class="action-btn red-btn hidden">CERRAR SESIÓN</button>
+            </div>
+        </div>
+        <button id="close-profile-btn" class="menu-btn">VOLVER</button>
+    </div>
+    
+    <!-- Pantalla de Tienda de Buffs -->
+    <div class="ui-overlay hidden" id="shop-screen">
+        <h1>TIENDA DE BUFFS</h1>
+        <p class="record-text" style="color: #fbbf24; text-shadow: 0 0 15px rgba(251, 191, 36, 0.4); margin-bottom: 1.5rem;">
+            SALDO: <span id="shop-coins-display">0</span> 🪙
+        </p>
+        <div class="shop-container">
+            <div class="shop-item">
+                <div class="shop-item-info">
+                    <span class="shop-item-name">Puntuación x2 (15s)</span>
+                    <span class="shop-item-desc">Duplica los puntos obtenidos durante 15 segundos.</span>
+                </div>
+                <button id="buy-double-score-btn" class="buy-btn">50 🪙</button>
+            </div>
+            <div class="shop-item">
+                <div class="shop-item-info">
+                    <span class="shop-item-name">Super Poder Inicial</span>
+                    <span class="shop-item-desc">Nivel 1 con Paddle Grande o Bola de Fuego.</span>
+                </div>
+                <button id="buy-super-power-btn" class="buy-btn">100 🪙</button>
+            </div>
+        </div>
+        <button id="close-shop-btn" class="menu-btn" style="margin-top: 20px;">VOLVER</button>
+    </div>
+
+    <!-- Botones Flotantes de Activación de Buffs (Lado Izquierdo) -->
+    <div id="game-buffs-container" class="hidden">
+        <button id="activate-double-score-btn" class="hud-buff-btn">
+            x2 <span id="double-score-count-badge">0</span>
+        </button>
+        <button id="activate-super-power-btn" class="hud-buff-btn">
+            ⚡ <span id="super-power-count-badge">0</span>
+        </button>
+    </div>
+
+    <!-- Toast de Notificación de Buffs -->
+    <div id="buff-toast" class="buff-toast-hidden"></div>
+
+    <!-- Modal de Comprar Vida Extra -->
+    <div class="ui-overlay hidden" id="extra-life-modal">
+        <h1>¿CONTINUAR?</h1>
+        <p>Te has quedado sin vidas.</p>
+        <p style="color: #fbbf24; font-size: 1.4rem; font-weight: bold; text-shadow: 0 0 15px rgba(251, 191, 36, 0.4); margin-bottom: 1.5rem;">
+            ¿Deseas comprar 1 vida extra por 10 🪙?
+        </p>
+        <div style="display: flex; flex-direction: column; gap: 10px; width: 100%; align-items: center; margin-top: 10px;">
+            <button id="buy-extra-life-btn" class="menu-btn" style="background: linear-gradient(135deg, #10b981, #059669); width: 220px; box-shadow: 0 0 15px rgba(16, 185, 129, 0.4);">
+                COMPRAR (10 🪙)
+            </button>
+            <button id="decline-extra-life-btn" class="menu-btn" style="background: linear-gradient(135deg, #ef4444, #dc2626); width: 220px; box-shadow: 0 0 15px rgba(239, 68, 68, 0.4);">
+                NO, GRACIAS
+            </button>
+        </div>
     </div>
 
 </div>

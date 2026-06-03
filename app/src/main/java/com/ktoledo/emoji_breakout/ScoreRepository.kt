@@ -1,79 +1,153 @@
 package com.ktoledo.emoji_breakout
 
+import android.content.Context
 import android.util.Log
+import com.google.firebase.FirebaseApp
+import com.google.firebase.FirebaseOptions
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.database.FirebaseDatabase
+import com.google.firebase.database.IgnoreExtraProperties
 
-/**
- * Interfaz para guardar y obtener puntuaciones.
- * Permite cambiar fácilmente entre almacenamiento local (SharedPreferences/Room) y servicios en la nube (Firebase/Firestore/Web API).
- */
+@IgnoreExtraProperties
+data class LeaderboardEntry(
+    val name: String = "",
+    val score: Int = 0,
+    val maxLevel: Int = 0,
+    val profilePic: String = ""
+)
+
 interface ScoreRepository {
-    fun updateHighScore(userId: String, score: Int, onSuccess: () -> Unit, onFailure: (Exception) -> Unit)
-    fun getGlobalLeaderboard(onSuccess: (List<Pair<String, Int>>) -> Unit, onFailure: (Exception) -> Unit)
+    fun updateHighScore(
+        playerName: String,
+        score: Int,
+        maxLevel: Int,
+        profilePic: String,
+        onSuccess: () -> Unit,
+        onFailure: (Exception) -> Unit
+    )
+    
+    fun getGlobalLeaderboard(
+        onSuccess: (List<LeaderboardEntry>) -> Unit,
+        onFailure: (Exception) -> Unit
+    )
 }
 
-/**
- * Repositorio de Firebase mockeado que muestra cómo implementar el guardado en la nube en el futuro.
- */
-class FirebaseScoreRepository : ScoreRepository {
+class FirebaseScoreRepository(private val context: Context) : ScoreRepository {
     private val TAG = "FirebaseScoreRepository"
 
-    override fun updateHighScore(userId: String, score: Int, onSuccess: () -> Unit, onFailure: (Exception) -> Unit) {
-        Log.d(TAG, "Subiendo high score a la nube para $userId: $score")
-        
-        // --- Ejemplo de código de Firebase Firestore real ---
-        /*
-        val db = FirebaseFirestore.getInstance()
-        val scoreData = hashMapOf(
-            "username" to userId,
-            "score" to score,
-            "timestamp" to FieldValue.serverTimestamp()
-        )
-        db.collection("leaderboard").document(userId)
-            .set(scoreData, SetOptions.merge())
-            .addOnSuccessListener {
-                Log.d(TAG, "Puntuación guardada con éxito en la nube.")
-                onSuccess()
+    init {
+        // Inicializar Firebase programáticamente si no se ha inicializado con google-services.json
+        try {
+            FirebaseApp.getInstance()
+        } catch (e: IllegalStateException) {
+            Log.w(TAG, "Firebase no está inicializado. Usando inicialización programática de respaldo.")
+            try {
+                val options = FirebaseOptions.Builder()
+                    .setApplicationId("1:100000000000:android:dummyappid")
+                    .setApiKey("AIzaSyDummyKeyForCompilationOnly12345")
+                    .setDatabaseUrl("https://emoji-breakout-default-rtdb.firebaseio.com") // Reemplazar con la URL real
+                    .build()
+                FirebaseApp.initializeApp(context, options)
+            } catch (ex: Exception) {
+                Log.e(TAG, "Error al inicializar Firebase de respaldo: ${ex.message}")
             }
-            .addOnFailureListener { e ->
-                Log.e(TAG, "Error al guardar en Firebase", e)
-                onFailure(e)
-            }
-        */
-        
-        // Simular éxito inmediato en el mock
-        onSuccess()
+        }
     }
 
-    override fun getGlobalLeaderboard(onSuccess: (List<Pair<String, Int>>) -> Unit, onFailure: (Exception) -> Unit) {
-        Log.d(TAG, "Consultando ranking global en la nube...")
-        
-        // --- Ejemplo de lectura de Firebase Firestore real ---
-        /*
-        val db = FirebaseFirestore.getInstance()
-        db.collection("leaderboard")
-            .orderBy("score", Query.Direction.DESCENDING)
-            .limit(10)
-            .get()
-            .addOnSuccessListener { result ->
-                val list = ArrayList<Pair<String, Int>>()
-                for (document in result) {
-                    val username = document.getString("username") ?: "Desconocido"
-                    val score = document.getLong("score")?.toInt() ?: 0
-                    list.add(Pair(username, score))
+    override fun updateHighScore(
+        playerName: String,
+        score: Int,
+        maxLevel: Int,
+        profilePic: String,
+        onSuccess: () -> Unit,
+        onFailure: (Exception) -> Unit
+    ) {
+        val auth = FirebaseAuth.getInstance()
+        val currentUser = auth.currentUser
+
+        if (currentUser != null) {
+            // Usuario ya autenticado, procedemos a guardar
+            saveToDatabase(currentUser.uid, playerName, score, maxLevel, profilePic, onSuccess, onFailure)
+        } else {
+            // Autenticar anónimamente primero
+            auth.signInAnonymously()
+                .addOnSuccessListener { authResult ->
+                    val uid = authResult.user?.uid
+                    if (uid != null) {
+                        saveToDatabase(uid, playerName, score, maxLevel, profilePic, onSuccess, onFailure)
+                    } else {
+                        onFailure(Exception("UID de usuario anónimo nulo"))
+                    }
                 }
-                onSuccess(list)
-            }
-            .addOnFailureListener { e -> onFailure(e) }
-        */
-        
-        // Mock de datos devueltos
-        val dummyLeaderboard = listOf(
-            Pair("👑 EmojiKing", 25000),
-            Pair("⚡ FlashClicker", 18500),
-            Pair("🧱 BrickBreaker", 14300),
-            Pair("⭐ ProBreaker", 10200),
-            Pair("🎮 PlayerOne", 8500)
-        )
-        onSuccess(dummyLeaderboard)
+                .addOnFailureListener { e ->
+                    Log.e(TAG, "Error en autenticación anónima", e)
+                    onFailure(e)
+                }
+        }
+    }
+
+    private fun saveToDatabase(
+        uid: String,
+        playerName: String,
+        score: Int,
+        maxLevel: Int,
+        profilePic: String,
+        onSuccess: () -> Unit,
+        onFailure: (Exception) -> Unit
+    ) {
+        try {
+            val database = FirebaseDatabase.getInstance()
+            val userScoreRef = database.getReference("leaderboard").child(uid)
+
+            val entry = LeaderboardEntry(
+                name = playerName,
+                score = score,
+                maxLevel = maxLevel,
+                profilePic = profilePic
+            )
+
+            userScoreRef.setValue(entry)
+                .addOnSuccessListener {
+                    Log.d(TAG, "Récord guardado en Firebase para el UID: $uid")
+                    onSuccess()
+                }
+                .addOnFailureListener { e ->
+                    Log.e(TAG, "Error al escribir en Realtime Database", e)
+                    onFailure(e)
+                }
+        } catch (e: Exception) {
+            onFailure(e)
+        }
+    }
+
+    override fun getGlobalLeaderboard(
+        onSuccess: (List<LeaderboardEntry>) -> Unit,
+        onFailure: (Exception) -> Unit
+    ) {
+        try {
+            val database = FirebaseDatabase.getInstance()
+            val leaderboardRef = database.getReference("leaderboard")
+
+            leaderboardRef.orderByChild("score").limitToLast(50)
+                .get()
+                .addOnSuccessListener { snapshot ->
+                    val list = mutableListOf<LeaderboardEntry>()
+                    for (child in snapshot.children) {
+                        val entry = child.getValue(LeaderboardEntry::class.java)
+                        if (entry != null) {
+                            list.add(entry)
+                        }
+                    }
+                    // Firebase ordena ascendentemente por defecto, invertimos para que sea de mayor a menor
+                    val sortedList = list.sortedByDescending { it.score }
+                    onSuccess(sortedList)
+                }
+                .addOnFailureListener { e ->
+                    Log.e(TAG, "Error al recuperar Leaderboard de Firebase", e)
+                    onFailure(e)
+                }
+        } catch (e: Exception) {
+            onFailure(e)
+        }
     }
 }

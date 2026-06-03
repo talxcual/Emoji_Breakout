@@ -61,6 +61,147 @@ function saveGameProgress(level, score) {
     }
 }
 
+function saveSessionState(jsonState) {
+    if (window.AndroidInterface && window.AndroidInterface.saveSession) {
+        try {
+            window.AndroidInterface.saveSession(jsonState);
+        } catch (e) {
+            console.error("Error calling saveSession:", e);
+        }
+    }
+}
+
+function loadSessionState() {
+    if (window.AndroidInterface && window.AndroidInterface.loadSession) {
+        try {
+            return window.AndroidInterface.loadSession();
+        } catch (e) {
+            console.error("Error calling loadSession:", e);
+        }
+    }
+    return null;
+}
+
+function clearSessionState() {
+    if (window.AndroidInterface && window.AndroidInterface.clearSession) {
+        try {
+            window.AndroidInterface.clearSession();
+        } catch (e) {
+            console.error("Error calling clearSession:", e);
+        }
+    }
+}
+
+// --- Android Native Interface Bridge Helpers for Economy & Buffs ---
+function getDoubleScoreCount() {
+    if (window.AndroidInterface && window.AndroidInterface.getDoubleScoreCount) {
+        try {
+            return window.AndroidInterface.getDoubleScoreCount();
+        } catch (e) {
+            console.error("Error calling getDoubleScoreCount:", e);
+        }
+    }
+    let dCount = parseInt(localStorage.getItem('player_double_score_count') || '0', 10);
+    return isNaN(dCount) ? 0 : dCount;
+}
+
+function saveDoubleScoreCount(count) {
+    if (window.AndroidInterface && window.AndroidInterface.saveDoubleScoreCount) {
+        try {
+            window.AndroidInterface.saveDoubleScoreCount(count);
+            return;
+        } catch (e) {
+            console.error("Error calling saveDoubleScoreCount:", e);
+        }
+    }
+    localStorage.setItem('player_double_score_count', count.toString());
+}
+
+function getSuperPowerCount() {
+    if (window.AndroidInterface && window.AndroidInterface.getSuperPowerCount) {
+        try {
+            return window.AndroidInterface.getSuperPowerCount();
+        } catch (e) {
+            console.error("Error calling getSuperPowerCount:", e);
+        }
+    }
+    let sCount = parseInt(localStorage.getItem('player_super_power_count') || '0', 10);
+    return isNaN(sCount) ? 0 : sCount;
+}
+
+function saveSuperPowerCount(count) {
+    if (window.AndroidInterface && window.AndroidInterface.saveSuperPowerCount) {
+        try {
+            window.AndroidInterface.saveSuperPowerCount(count);
+            return;
+        } catch (e) {
+            console.error("Error calling saveSuperPowerCount:", e);
+        }
+    }
+    localStorage.setItem('player_super_power_count', count.toString());
+}
+
+function getShopFirstPurchaseTime() {
+    if (window.AndroidInterface && window.AndroidInterface.getShopFirstPurchaseTime) {
+        try {
+            return window.AndroidInterface.getShopFirstPurchaseTime();
+        } catch (e) {
+            console.error("Error calling getShopFirstPurchaseTime:", e);
+        }
+    }
+    let val = parseInt(localStorage.getItem('shop_first_purchase_time') || '0', 10);
+    return isNaN(val) ? 0 : val;
+}
+
+function getShopPurchaseCountToday() {
+    if (window.AndroidInterface && window.AndroidInterface.getShopPurchaseCountToday) {
+        try {
+            return window.AndroidInterface.getShopPurchaseCountToday();
+        } catch (e) {
+            console.error("Error calling getShopPurchaseCountToday:", e);
+        }
+    }
+    let val = parseInt(localStorage.getItem('shop_purchase_count_today') || '0', 10);
+    return isNaN(val) ? 0 : val;
+}
+
+function saveShopLimits(countToday, firstPurchaseTime) {
+    if (window.AndroidInterface && window.AndroidInterface.saveShopLimits) {
+        try {
+            window.AndroidInterface.saveShopLimits(countToday, firstPurchaseTime);
+            return;
+        } catch (e) {
+            console.error("Error calling saveShopLimits:", e);
+        }
+    }
+    localStorage.setItem('shop_purchase_count_today', countToday.toString());
+    localStorage.setItem('shop_first_purchase_time', firstPurchaseTime.toString());
+}
+
+function getLastDailyGiftClaimTime() {
+    if (window.AndroidInterface && window.AndroidInterface.getLastDailyGiftClaimTime) {
+        try {
+            return window.AndroidInterface.getLastDailyGiftClaimTime();
+        } catch (e) {
+            console.error("Error calling getLastDailyGiftClaimTime:", e);
+        }
+    }
+    let val = parseInt(localStorage.getItem('last_daily_gift_claim_time') || '0', 10);
+    return isNaN(val) ? 0 : val;
+}
+
+function saveLastDailyGiftClaimTime(time) {
+    if (window.AndroidInterface && window.AndroidInterface.saveLastDailyGiftClaimTime) {
+        try {
+            window.AndroidInterface.saveLastDailyGiftClaimTime(time);
+            return;
+        } catch (e) {
+            console.error("Error calling saveLastDailyGiftClaimTime:", e);
+        }
+    }
+    localStorage.setItem('last_daily_gift_claim_time', time.toString());
+}
+
 class Paddle {
     constructor(game) {
         this.game = game;
@@ -348,7 +489,7 @@ class PowerUp {
         this.y = y;
         this.width = 30;
         this.height = 30;
-        this.type = type; // 'life', 'long', 'short', 'fireball', 'multiball', 'fast', 'inverted'
+        this.type = type; // 'life', 'long', 'short', 'fireball', 'multiball', 'fast', 'inverted', 'coin'
         this.speedY = 180; // Speed in pixels per second
         this.active = true;
 
@@ -360,6 +501,7 @@ class PowerUp {
             case 'multiball': this.emoji = '🔮'; break;
             case 'fast': this.emoji = '💀'; break;
             case 'inverted': this.emoji = '🌀'; break;
+            case 'coin': this.emoji = '🪙'; break;
         }
     }
 
@@ -377,7 +519,11 @@ class PowerUp {
             this.x >= this.game.paddle.x &&
             this.x <= this.game.paddle.x + this.game.paddle.width) {
 
-            playSFX('powerup');
+            if (this.type === 'coin') {
+                playSFX('coin');
+            } else {
+                playSFX('powerup');
+            }
             this.applyEffect();
             this.active = false;
         }
@@ -391,18 +537,12 @@ class PowerUp {
             case 'long':
                 // Buff: Grow paddle
                 this.game.paddle.width = this.game.paddle.baseWidth * 1.6;
-                if (this.game.paddleTimeout) clearTimeout(this.game.paddleTimeout);
-                this.game.paddleTimeout = setTimeout(() => {
-                    this.game.paddle.width = this.game.paddle.baseWidth;
-                }, 10000);
+                this.game.paddleTimer = 10.0;
                 break;
             case 'short':
                 // Nerf: Shrink paddle
                 this.game.paddle.width = this.game.paddle.baseWidth * 0.6;
-                if (this.game.paddleTimeout) clearTimeout(this.game.paddleTimeout);
-                this.game.paddleTimeout = setTimeout(() => {
-                    this.game.paddle.width = this.game.paddle.baseWidth;
-                }, 10000);
+                this.game.paddleTimer = 10.0;
                 break;
             case 'fireball':
                 // Buff: Fireball (pierce blocks)
@@ -410,13 +550,7 @@ class PowerUp {
                     ball.isFireball = true;
                     ball.emoji = '🔥';
                 });
-                if (this.game.fireballTimeout) clearTimeout(this.game.fireballTimeout);
-                this.game.fireballTimeout = setTimeout(() => {
-                    this.game.balls.forEach(ball => {
-                        ball.isFireball = false;
-                        if (ball.emoji === '🔥') ball.emoji = '🏐';
-                    });
-                }, 10000);
+                this.game.fireballTimer = 10.0;
                 break;
             case 'multiball':
                 // Buff: 2 Extra balls
@@ -435,23 +569,16 @@ class PowerUp {
                     ball.speedMultiplier = 1.7;
                     ball.emoji = '💀';
                 });
-                if (this.game.speedTimeout) clearTimeout(this.game.speedTimeout);
-                this.game.speedTimeout = setTimeout(() => {
-                    this.game.balls.forEach(ball => {
-                        ball.speedMultiplier = 1.0;
-                        if (ball.emoji === '💀') ball.emoji = '🏐';
-                    });
-                }, 6000); // 6 seconds
+                this.game.speedTimer = 6.0;
                 break;
             case 'inverted':
                 // Nerf: Inverted controls
                 this.game.paddle.isInverted = true;
                 this.game.paddle.color = '#dc2626'; // Visually show inverted status (Red)
-                if (this.game.invertTimeout) clearTimeout(this.game.invertTimeout);
-                this.game.invertTimeout = setTimeout(() => {
-                    this.game.paddle.isInverted = false;
-                    this.game.paddle.color = '#8b5cf6'; // Restore color
-                }, 8000); // 8 seconds
+                this.game.invertTimer = 8.0;
+                break;
+            case 'coin':
+                this.game.coinsCollected++;
                 break;
         }
         this.game.updateUI();
@@ -540,21 +667,34 @@ class Game {
         // Time tracking for Delta Time
         this.lastTime = 0;
         
-        // Timeouts for power-up effects
-        this.paddleTimeout = null;
-        this.fireballTimeout = null;
-        this.speedTimeout = null;
-        this.invertTimeout = null;
+        // Timers for power-up effects
+        this.paddleTimer = 0;
+        this.fireballTimer = 0;
+        this.speedTimer = 0;
+        this.invertTimer = 0;
+        this.doubleScoreTimer = 0;
 
         // Screen shake settings
         this.shakeDuration = 0;
         this.shakeIntensity = 0;
+
+        // Virtual currency and Store Buffs
+        this.coinsCollected = 0;
+        this.doubleScoreCount = getDoubleScoreCount();
+        this.superPowerCount = getSuperPowerCount();
+        this.scoreMultiplier = 1;
+        this.shopOpenedFrom = 'menu'; // Track if shop opened from 'menu' or 'pause'
+        this.toastTimeout = null;
+
+        // Set global game instance reference for native bridge access
+        window.gameInstance = this;
 
         this.setupInputs();
         this.loop = this.loop.bind(this);
         
         // Init UI components
         this.showMainMenu();
+        this.updateRecordDisplay();
         this.updateMuteButtonVisual();
         
         requestAnimationFrame((timestamp) => {
@@ -630,14 +770,202 @@ class Game {
         
         document.getElementById('restart-btn').addEventListener('click', () => this.startGame());
         document.getElementById('play-again-btn').addEventListener('click', () => this.startGame());
+
+        // Resume Saved Session Button
+        const resumeSessionBtn = document.getElementById('resume-session-btn');
+        if (resumeSessionBtn) {
+            resumeSessionBtn.addEventListener('click', () => {
+                const saved = loadSessionState();
+                if (saved) {
+                    this.loadGameState(saved);
+                }
+            });
+        }
+
+        // Leaderboard (Ranking Global) Buttons
+        const leaderboardBtn = document.getElementById('leaderboard-btn');
+        if (leaderboardBtn) {
+            leaderboardBtn.addEventListener('click', () => {
+                const tbody = document.getElementById('leaderboard-tbody');
+                if (tbody) {
+                    tbody.innerHTML = `<tr><td colspan="4" style="color: #8b5cf6; text-align: center;">Cargando Ranking...</td></tr>`;
+                }
+                if (window.AndroidInterface && window.AndroidInterface.fetchLeaderboard) {
+                    window.AndroidInterface.fetchLeaderboard();
+                } else {
+                    // Mock offline data for browser testing
+                    const mockData = [
+                        { name: "👑 EmojiKing", maxLevel: 50, score: 25000, profilePic: "" },
+                        { name: "⚡ FlashClicker", maxLevel: 42, score: 18500, profilePic: "" },
+                        { name: "🧱 BrickBreaker", maxLevel: 31, score: 14300, profilePic: "" },
+                        { name: "⭐ ProBreaker", maxLevel: 25, score: 10200, profilePic: "" },
+                        { name: "🎮 PlayerOne", maxLevel: 18, score: 8500, profilePic: "" }
+                    ];
+                    setTimeout(() => {
+                        this.onLeaderboardLoaded(JSON.stringify(mockData));
+                    }, 500);
+                }
+                document.getElementById('leaderboard-screen').classList.remove('hidden');
+            });
+        }
+
+        const closeLeaderboardBtn = document.getElementById('close-leaderboard-btn');
+        if (closeLeaderboardBtn) {
+            closeLeaderboardBtn.addEventListener('click', () => {
+                document.getElementById('leaderboard-screen').classList.add('hidden');
+            });
+        }
+
+        // Profile (Mi Perfil) Buttons and Listeners
+        const profileBtn = document.getElementById('profile-btn');
+        if (profileBtn) {
+            profileBtn.addEventListener('click', () => {
+                this.loadUserProfile();
+                document.getElementById('profile-screen').classList.remove('hidden');
+            });
+        }
+
+        const closeProfileBtn = document.getElementById('close-profile-btn');
+        if (closeProfileBtn) {
+            closeProfileBtn.addEventListener('click', () => {
+                document.getElementById('profile-screen').classList.add('hidden');
+            });
+        }
+
+        const googleLoginBtn = document.getElementById('google-login-btn');
+        if (googleLoginBtn) {
+            googleLoginBtn.addEventListener('click', () => {
+                if (window.AndroidInterface && window.AndroidInterface.loginWithGoogle) {
+                    window.AndroidInterface.loginWithGoogle();
+                } else {
+                    alert("Google Login solo está disponible en la app Android.");
+                }
+            });
+        }
+
+        const changeAvatarBtn = document.getElementById('change-avatar-btn');
+        if (changeAvatarBtn) {
+            changeAvatarBtn.addEventListener('click', () => {
+                if (window.AndroidInterface && window.AndroidInterface.selectProfilePicture) {
+                    window.AndroidInterface.selectProfilePicture();
+                } else {
+                    alert("La selección de imagen solo está disponible en la app Android.");
+                }
+            });
+        }
+
+        const saveProfileBtn = document.getElementById('save-profile-btn');
+        if (saveProfileBtn) {
+            saveProfileBtn.addEventListener('click', () => {
+                this.saveUserProfile();
+            });
+        }
+
+        const logoutBtn = document.getElementById('logout-btn');
+        if (logoutBtn) {
+            logoutBtn.addEventListener('click', () => {
+                if (window.AndroidInterface && window.AndroidInterface.logout) {
+                    window.AndroidInterface.logout();
+                } else {
+                    alert("Cerrar sesión solo está disponible en la app Android.");
+                }
+            });
+        }
+
+        // Shop (Tienda) Buttons and Listeners
+        const shopBtn = document.getElementById('shop-btn');
+        if (shopBtn) {
+            shopBtn.addEventListener('click', () => {
+                this.shopOpenedFrom = 'menu';
+                this.loadShop();
+                document.getElementById('shop-screen').classList.remove('hidden');
+            });
+        }
+
+        const pauseShopBtn = document.getElementById('pause-shop-btn');
+        if (pauseShopBtn) {
+            pauseShopBtn.addEventListener('click', () => {
+                this.shopOpenedFrom = 'pause';
+                this.loadShop();
+                document.getElementById('pause-screen').classList.add('hidden');
+                document.getElementById('shop-screen').classList.remove('hidden');
+            });
+        }
+
+        const closeShopBtn = document.getElementById('close-shop-btn');
+        if (closeShopBtn) {
+            closeShopBtn.addEventListener('click', () => {
+                document.getElementById('shop-screen').classList.add('hidden');
+                if (this.shopOpenedFrom === 'pause') {
+                    document.getElementById('pause-screen').classList.remove('hidden');
+                }
+            });
+        }
+
+        const buyDoubleScoreBtn = document.getElementById('buy-double-score-btn');
+        if (buyDoubleScoreBtn) {
+            buyDoubleScoreBtn.addEventListener('click', () => {
+                this.buyShopItem('doubleScore', 50);
+            });
+        }
+
+        const buySuperPowerBtn = document.getElementById('buy-super-power-btn');
+        if (buySuperPowerBtn) {
+            buySuperPowerBtn.addEventListener('click', () => {
+                this.buyShopItem('superPower', 100);
+            });
+        }
+
+        // HUD Floating Buff Activation Listeners
+        const actDoubleBtn = document.getElementById('activate-double-score-btn');
+        if (actDoubleBtn) {
+            actDoubleBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.activateDoubleScoreBuff();
+            });
+        }
+
+        const actSuperBtn = document.getElementById('activate-super-power-btn');
+        if (actSuperBtn) {
+            actSuperBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.activateSuperPowerBuff();
+            });
+        }
+
+        // Daily Gift Button
+        const dailyGiftBtn = document.getElementById('daily-gift-btn');
+        if (dailyGiftBtn) {
+            dailyGiftBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.claimDailyGift();
+            });
+        }
+
+        // Extra Life Modal Buttons
+        const buyExtraLifeBtn = document.getElementById('buy-extra-life-btn');
+        if (buyExtraLifeBtn) {
+            buyExtraLifeBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.buyExtraLife();
+            });
+        }
+
+        const declineExtraLifeBtn = document.getElementById('decline-extra-life-btn');
+        if (declineExtraLifeBtn) {
+            declineExtraLifeBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.declineExtraLife();
+            });
+        }
     }
 
     startGame() {
+        clearSessionState(); // Reset saved state when starting fresh
         this.state = 'PLAYING';
         this.level = 1;
         this.score = 0;
         this.lives = 3;
-        this.updateUI();
 
         document.getElementById('start-screen').classList.add('hidden');
         document.getElementById('game-over-screen').classList.add('hidden');
@@ -645,17 +973,35 @@ class Game {
         document.getElementById('pause-screen').classList.add('hidden');
         document.getElementById('level-cleared-screen').classList.add('hidden');
 
-        // Clear all timeouts
-        if (this.paddleTimeout) clearTimeout(this.paddleTimeout);
-        if (this.fireballTimeout) clearTimeout(this.fireballTimeout);
-        if (this.speedTimeout) clearTimeout(this.speedTimeout);
-        if (this.invertTimeout) clearTimeout(this.invertTimeout);
+        // Reset all power-up timers
+        this.paddleTimer = 0;
+        this.fireballTimer = 0;
+        this.speedTimer = 0;
+        this.invertTimer = 0;
+        this.doubleScoreTimer = 0;
 
         this.paddle = new Paddle(this);
         this.balls = [new Ball(this)];
         this.powerUps = [];
         this.particles = [];
         this.shakeDuration = 0;
+
+        // Reset coins collected in this run
+        this.coinsCollected = 0;
+
+        // Reset score multiplier to 1 (activated manually in game)
+        this.scoreMultiplier = 1;
+
+        // Load buff stock from localStorage to ensure latest purchases are active
+        this.doubleScoreCount = getDoubleScoreCount();
+        this.superPowerCount = getSuperPowerCount();
+
+        // Show floating buff buttons
+        document.getElementById('game-buffs-container').classList.remove('hidden');
+        this.updateBuffButtonsUI();
+        
+        this.updateUI();
+        this.updateRecordDisplay();
         
         startBGMusic();
         this.updateMuteButtonVisual();
@@ -667,6 +1013,7 @@ class Game {
         this.state = 'PAUSED';
         pauseBGMusic();
         document.getElementById('pause-screen').classList.remove('hidden');
+        this.saveGameState(); // Auto-save on pausing
     }
 
     resumeGame() {
@@ -674,12 +1021,15 @@ class Game {
         this.state = 'PLAYING';
         startBGMusic();
         document.getElementById('pause-screen').classList.add('hidden');
+        document.getElementById('game-buffs-container').classList.remove('hidden');
+        this.updateBuffButtonsUI();
     }
 
     quitToMenu() {
         this.state = 'MENU';
         pauseBGMusic();
         document.getElementById('pause-screen').classList.add('hidden');
+        document.getElementById('game-buffs-container').classList.add('hidden');
         document.getElementById('start-screen').classList.remove('hidden');
         this.showMainMenu();
     }
@@ -687,6 +1037,21 @@ class Game {
     showMainMenu() {
         const highScore = window.AndroidInterface ? window.AndroidInterface.getHighScore() : 0;
         document.getElementById('high-score-display').textContent = highScore;
+        this.updateRecordDisplay();
+        document.getElementById('game-buffs-container').classList.add('hidden');
+
+        // Update daily gift button state
+        this.updateDailyGiftUI();
+
+        const saved = loadSessionState();
+        const resumeBtn = document.getElementById('resume-session-btn');
+        if (resumeBtn) {
+            if (saved) {
+                resumeBtn.classList.remove('hidden');
+            } else {
+                resumeBtn.classList.add('hidden');
+            }
+        }
     }
 
     toggleMute() {
@@ -697,6 +1062,14 @@ class Game {
     updateMuteButtonVisual() {
         const muted = isGameMuted();
         document.getElementById('mute-btn').textContent = muted ? '🔇' : '🔊';
+    }
+
+    updateRecordDisplay() {
+        const highScore = window.AndroidInterface ? window.AndroidInterface.getHighScore() : 0;
+        const bottomHighScore = document.getElementById('bottom-high-score-display');
+        if (bottomHighScore) {
+            bottomHighScore.textContent = highScore;
+        }
     }
 
     generateLevelLayout(level) {
@@ -855,19 +1228,40 @@ class Game {
         playSFX('lost');
         
         if (this.lives <= 0) {
-            this.state = 'GAMEOVER';
-            pauseBGMusic();
-            saveGameProgress(this.level, this.score);
-            document.getElementById('final-score').textContent = this.score;
-            document.getElementById('game-over-screen').classList.remove('hidden');
+            let coins = 0;
+            if (window.AndroidInterface && window.AndroidInterface.getCoins) {
+                coins = window.AndroidInterface.getCoins();
+            } else {
+                coins = parseInt(localStorage.getItem('player_coins') || '0', 10);
+            }
+            
+            // Player coins + coins collected in the current run
+            let totalAvailableCoins = coins + this.coinsCollected;
+
+            if (totalAvailableCoins >= 10) {
+                // Pause the game loop updates temporarily
+                this.state = 'PAUSED';
+                pauseBGMusic();
+                document.getElementById('game-buffs-container').classList.add('hidden');
+                document.getElementById('extra-life-modal').classList.remove('hidden');
+            } else {
+                this.state = 'GAMEOVER';
+                pauseBGMusic();
+                this.checkAndSaveScore();
+            }
         } else {
-            // Clean up power-up states
+            // Reset power-up states
             this.paddle.width = this.paddle.baseWidth;
             this.paddle.isInverted = false;
             this.paddle.color = '#8b5cf6';
+            this.paddleTimer = 0;
+            this.fireballTimer = 0;
+            this.speedTimer = 0;
+            this.invertTimer = 0;
             
             // Spawn a fresh ball
             this.balls = [new Ball(this)];
+            this.saveGameState(); // Save state with one less life
         }
     }
 
@@ -875,6 +1269,10 @@ class Game {
         document.getElementById('level-display').textContent = this.level;
         document.getElementById('score-display').textContent = this.score;
         document.getElementById('lives-display').textContent = '❤️'.repeat(Math.max(0, this.lives));
+        const coinsDisplay = document.getElementById('coins-display');
+        if (coinsDisplay) {
+            coinsDisplay.textContent = this.coinsCollected;
+        }
     }
 
     spawnPowerUp(x, y) {
@@ -906,11 +1304,21 @@ class Game {
 
                 const speed = Math.sqrt(ball.speedX * ball.speedX + ball.speedY * ball.speedY);
                 const hitPoint = (ball.x - (paddle.x + paddle.width / 2)) / (paddle.width / 2); // -1 to 1
-                const maxAngle = 72 * Math.PI / 180;
+                
+                // Limit maximum bounce angle to 60 degrees to prevent near-horizontal bounce
+                const maxAngle = 60 * Math.PI / 180;
                 const angle = hitPoint * maxAngle;
 
                 ball.speedX = speed * Math.sin(angle);
                 ball.speedY = -speed * Math.cos(angle);
+
+                // Enforce a minimum vertical velocity to guarantee the ball moves with vertical energy
+                const minYVelocity = speed * 0.4; // 40% of the ball's speed
+                if (Math.abs(ball.speedY) < minYVelocity) {
+                    ball.speedY = -minYVelocity;
+                    // Recalculate speedX to preserve the magnitude of the velocity vector
+                    ball.speedX = Math.sign(ball.speedX) * Math.sqrt(speed * speed - minYVelocity * minYVelocity);
+                }
             }
 
             // 2. Block collision (Circle to Rectangle with Side-Specific Bounce)
@@ -960,7 +1368,8 @@ class Game {
                         block.health -= ball.damage;
                         if (block.health <= 0) {
                             block.active = false;
-                            this.score += 10 * (block.maxHealth || 1);
+                            // Apply score multiplier if active (Double Score buff)
+                            this.score += 10 * (block.maxHealth || 1) * (this.scoreMultiplier || 1);
                             this.updateUI();
                             
                             playSFX('brick');
@@ -978,6 +1387,11 @@ class Game {
                             const particleCount = 12 + Math.floor(Math.random() * 8);
                             for (let i = 0; i < particleCount; i++) {
                                 this.particles.push(new Particle(this, block.x + block.width / 2, block.y + block.height / 2, block.color));
+                            }
+
+                            // Drop a coin with 15% probability
+                            if (Math.random() <= 0.15) {
+                                this.powerUps.push(new PowerUp(this, block.x + block.width / 2, block.y + block.height / 2, 'coin'));
                             }
 
                             this.spawnPowerUp(block.x + block.width / 2, block.y + block.height / 2);
@@ -1014,6 +1428,10 @@ class Game {
     }
 
     levelUp() {
+        // Persist collected coins before moving to next level
+        this.persistCollectedCoins();
+        document.getElementById('game-buffs-container').classList.add('hidden');
+
         // Save progress to Shared Preferences
         saveGameProgress(this.level + 1, this.score);
 
@@ -1030,11 +1448,14 @@ class Game {
         this.level++;
         if (this.level > 50) {
             this.state = 'VICTORY';
-            document.getElementById('win-screen').classList.remove('hidden');
+            this.checkAndSaveScore();
         } else {
             this.state = 'PLAYING';
             startBGMusic();
             this.loadLevel(this.level);
+            this.saveGameState(); // Auto-save at the start of the next level
+            document.getElementById('game-buffs-container').classList.remove('hidden');
+            this.updateBuffButtonsUI();
         }
         this.updateUI();
     }
@@ -1045,6 +1466,46 @@ class Game {
         // Reduce screen shake duration
         if (this.shakeDuration > 0) {
             this.shakeDuration -= dt;
+        }
+
+        // Decrement power-up timers
+        if (this.paddleTimer > 0) {
+            this.paddleTimer -= dt;
+            if (this.paddleTimer <= 0) {
+                this.paddle.width = this.paddle.baseWidth;
+            }
+        }
+        if (this.fireballTimer > 0) {
+            this.fireballTimer -= dt;
+            if (this.fireballTimer <= 0) {
+                this.balls.forEach(ball => {
+                    ball.isFireball = false;
+                    if (ball.emoji === '🔥') ball.emoji = '🏐';
+                });
+            }
+        }
+        if (this.speedTimer > 0) {
+            this.speedTimer -= dt;
+            if (this.speedTimer <= 0) {
+                this.balls.forEach(ball => {
+                    ball.speedMultiplier = 1.0;
+                    if (ball.emoji === '💀') ball.emoji = '🏐';
+                });
+            }
+        }
+        if (this.invertTimer > 0) {
+            this.invertTimer -= dt;
+            if (this.invertTimer <= 0) {
+                this.paddle.isInverted = false;
+                this.paddle.color = '#8b5cf6';
+            }
+        }
+        if (this.doubleScoreTimer > 0) {
+            this.doubleScoreTimer -= dt;
+            if (this.doubleScoreTimer <= 0) {
+                this.scoreMultiplier = 1;
+                this.updateBuffButtonsUI();
+            }
         }
 
         // Update moving blocks in levels >= 20
@@ -1092,6 +1553,748 @@ class Game {
         }
 
         this.ctx.restore();
+    }
+
+    saveGameState() {
+        // Only save if the game is in a playable/paused state
+        if (this.state !== 'PLAYING' && this.state !== 'PAUSED') return;
+
+        const stateObj = {
+            level: this.level,
+            score: this.score,
+            lives: this.lives,
+            paddle: {
+                x: this.paddle.x,
+                width: this.paddle.width,
+                isInverted: this.paddle.isInverted,
+                color: this.paddle.color
+            },
+            balls: this.balls.map(ball => ({
+                x: ball.x,
+                y: ball.y,
+                speedX: ball.speedX,
+                speedY: ball.speedY,
+                speedMultiplier: ball.speedMultiplier,
+                damage: ball.damage,
+                isFireball: ball.isFireball,
+                emoji: ball.emoji,
+                active: ball.active
+            })),
+            blocks: this.blocks.map(block => ({
+                x: block.x,
+                y: block.y,
+                type: block.type,
+                health: block.health,
+                maxHealth: block.maxHealth,
+                active: block.active,
+                isMoving: block.isMoving,
+                vx: block.vx
+            })),
+            timers: {
+                paddleTimer: this.paddleTimer,
+                fireballTimer: this.fireballTimer,
+                speedTimer: this.speedTimer,
+                invertTimer: this.invertTimer,
+                doubleScoreTimer: this.doubleScoreTimer
+            },
+            scoreMultiplier: this.scoreMultiplier,
+            doubleScoreCount: this.doubleScoreCount,
+            superPowerCount: this.superPowerCount
+        };
+
+        saveSessionState(JSON.stringify(stateObj));
+    }
+
+    loadGameState(jsonString) {
+        try {
+            const state = JSON.parse(jsonString);
+            if (!state) return false;
+
+            this.level = state.level;
+            this.score = state.score;
+            this.lives = state.lives;
+
+            this.paddle = new Paddle(this);
+            this.paddle.x = state.paddle.x;
+            this.paddle.width = state.paddle.width;
+            this.paddle.isInverted = state.paddle.isInverted;
+            this.paddle.color = state.paddle.color;
+
+            this.balls = state.balls.map(bData => {
+                const ball = new Ball(this);
+                ball.x = bData.x;
+                ball.y = bData.y;
+                ball.speedX = bData.speedX;
+                ball.speedY = bData.speedY;
+                ball.speedMultiplier = bData.speedMultiplier;
+                ball.damage = bData.damage;
+                ball.isFireball = bData.isFireball;
+                ball.emoji = bData.emoji;
+                ball.active = bData.active;
+                return ball;
+            });
+
+            this.blocks = state.blocks.map(bData => {
+                const block = new Block(this, bData.x, bData.y, bData.type, bData.health);
+                block.maxHealth = bData.maxHealth;
+                block.active = bData.active;
+                block.isMoving = bData.isMoving;
+                block.vx = bData.vx;
+                return block;
+            });
+
+            if (state.timers) {
+                this.paddleTimer = state.timers.paddleTimer || 0;
+                this.fireballTimer = state.timers.fireballTimer || 0;
+                this.speedTimer = state.timers.speedTimer || 0;
+                this.invertTimer = state.timers.invertTimer || 0;
+                this.doubleScoreTimer = state.timers.doubleScoreTimer || 0;
+            } else {
+                this.paddleTimer = 0;
+                this.fireballTimer = 0;
+                this.speedTimer = 0;
+                this.invertTimer = 0;
+                this.doubleScoreTimer = 0;
+            }
+
+            this.scoreMultiplier = state.scoreMultiplier || 1;
+            // Always retrieve global stock from localStorage to prevent overwrite from stale session saves
+            this.doubleScoreCount = getDoubleScoreCount();
+            this.superPowerCount = getSuperPowerCount();
+
+            this.powerUps = [];
+            this.particles = [];
+            this.shakeDuration = 0;
+
+            this.state = 'PLAYING';
+            this.updateUI();
+            startBGMusic();
+            this.updateMuteButtonVisual();
+
+            // Display floating buffs HUD
+            document.getElementById('game-buffs-container').classList.remove('hidden');
+            this.updateBuffButtonsUI();
+
+            document.getElementById('start-screen').classList.add('hidden');
+            document.getElementById('game-over-screen').classList.add('hidden');
+            document.getElementById('win-screen').classList.add('hidden');
+            document.getElementById('pause-screen').classList.add('hidden');
+            document.getElementById('level-cleared-screen').classList.add('hidden');
+
+            return true;
+        } catch (e) {
+            console.error("Error parsing/loading saved state:", e);
+            return false;
+        }
+    }
+
+    checkAndSaveScore() {
+        // Persist collected coins before saving scores
+        this.persistCollectedCoins();
+
+        const currentHighScore = window.AndroidInterface ? window.AndroidInterface.getHighScore() : 0;
+        
+        // Si hay una nueva puntuación récord, se solicita el apodo
+        if (this.score > currentHighScore && window.AndroidInterface) {
+            const savedNickname = window.AndroidInterface.getPlayerNickname() || "";
+            document.getElementById('nickname-input').value = savedNickname;
+            
+            // Ocultar otras overlays y mostrar modal del apodo
+            document.getElementById('game-over-screen').classList.add('hidden');
+            document.getElementById('win-screen').classList.add('hidden');
+            document.getElementById('nickname-modal').classList.remove('hidden');
+            
+            // Vincular evento al botón de guardado
+            const saveBtn = document.getElementById('save-nickname-btn');
+            const newSaveBtn = saveBtn.cloneNode(true);
+            saveBtn.parentNode.replaceChild(newSaveBtn, saveBtn);
+            
+            newSaveBtn.addEventListener('click', () => {
+                let nickname = document.getElementById('nickname-input').value.trim();
+                if (!nickname) nickname = "JugadorAnónimo";
+                
+                // Guardar local y en la nube con la foto de perfil actual
+                const profilePic = window.AndroidInterface.getPlayerProfilePic() || "";
+                window.AndroidInterface.saveProgressWithProfile(this.level, this.score, nickname, profilePic);
+                clearSessionState();
+                this.updateRecordDisplay();
+                
+                // Ocultar modal del apodo
+                document.getElementById('nickname-modal').classList.add('hidden');
+                
+                // Mostrar pantalla final correspondiente
+                this.showEndScreen();
+            });
+        } else {
+            // Guardado tradicional
+            saveGameProgress(this.level, this.score);
+            clearSessionState();
+            this.updateRecordDisplay();
+            this.showEndScreen();
+        }
+    }
+
+    showEndScreen() {
+        document.getElementById('game-buffs-container').classList.add('hidden');
+        if (this.state === 'GAMEOVER') {
+            document.getElementById('final-score').textContent = this.score;
+            document.getElementById('game-over-screen').classList.remove('hidden');
+        } else if (this.state === 'VICTORY') {
+            document.getElementById('win-screen').classList.remove('hidden');
+        }
+    }
+
+    onLeaderboardLoaded(jsonString) {
+        try {
+            const list = JSON.parse(jsonString);
+            const tbody = document.getElementById('leaderboard-tbody');
+            if (!tbody) return;
+
+            if (list.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="4" style="text-align: center;">No hay puntuaciones registradas aún. ¡Sé el primero!</td></tr>`;
+                return;
+            }
+
+            let html = "";
+            list.forEach((entry, index) => {
+                let position = index + 1;
+                let medal = position;
+                if (position === 1) medal = "🥇";
+                else if (position === 2) medal = "🥈";
+                else if (position === 3) medal = "🥉";
+
+                let avatarSrc = entry.profilePic || "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'><circle cx='40' cy='40' r='40' fill='%238b5cf6'/><text x='40' y='50' font-size='32' text-anchor='middle' fill='white'>👤</text></svg>";
+
+                html += `
+                    <tr>
+                        <td>${medal}</td>
+                        <td style="text-align: left; padding-left: 10px;">
+                            <img class="leaderboard-avatar" src="${avatarSrc}" alt="Avatar">
+                            ${this.escapeHtml(entry.name)}
+                        </td>
+                        <td>${entry.maxLevel}</td>
+                        <td style="color: #eab308; font-weight: bold;">${entry.score}</td>
+                    </tr>
+                `;
+            });
+            tbody.innerHTML = html;
+        } catch (e) {
+            console.error("Error al procesar el JSON del Leaderboard:", e);
+            const tbody = document.getElementById('leaderboard-tbody');
+            if (tbody) {
+                tbody.innerHTML = `<tr><td colspan="4" style="color: #ef4444; text-align: center;">Error al cargar el ranking.</td></tr>`;
+            }
+        }
+    }
+
+    onLeaderboardError(errorMsg) {
+        const tbody = document.getElementById('leaderboard-tbody');
+        if (tbody) {
+            tbody.innerHTML = `<tr><td colspan="4" style="color: #ef4444; text-align: center;">Error: ${this.escapeHtml(errorMsg)}</td></tr>`;
+        }
+    }
+
+    loadUserProfile() {
+        let authJson = {};
+        if (window.AndroidInterface && window.AndroidInterface.getAuthStatus) {
+            try {
+                authJson = JSON.parse(window.AndroidInterface.getAuthStatus());
+            } catch (e) {
+                console.error("Error parsing auth status:", e);
+            }
+        }
+
+        let nickname = "";
+        let profilePic = "";
+        let email = localStorage.getItem('player_email') || "";
+
+        if (window.AndroidInterface) {
+            nickname = window.AndroidInterface.getPlayerNickname() || "";
+            profilePic = window.AndroidInterface.getPlayerProfilePic() || "";
+        }
+
+        // Fallbacks
+        if (!nickname && authJson.name) nickname = authJson.name;
+        if (!profilePic && authJson.photoUrl) profilePic = authJson.photoUrl;
+        if (!email && authJson.email) email = authJson.email;
+
+        const nameInput = document.getElementById('profile-name-input');
+        if (nameInput) nameInput.value = nickname;
+
+        const emailInput = document.getElementById('profile-email-input');
+        if (emailInput) emailInput.value = email;
+
+        const preview = document.getElementById('profile-avatar-preview');
+        if (preview) {
+            preview.src = profilePic || "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'><circle cx='40' cy='40' r='40' fill='%238b5cf6'/><text x='40' y='50' font-size='32' text-anchor='middle' fill='white'>👤</text></svg>";
+        }
+
+        const googleLoginBtn = document.getElementById('google-login-btn');
+        const logoutBtn = document.getElementById('logout-btn');
+
+        if (authJson.provider === 'google') {
+            if (googleLoginBtn) googleLoginBtn.classList.add('hidden');
+            if (logoutBtn) logoutBtn.classList.remove('hidden');
+        } else {
+            if (googleLoginBtn) googleLoginBtn.classList.remove('hidden');
+            if (logoutBtn) logoutBtn.classList.add('hidden');
+        }
+    }
+
+    saveUserProfile() {
+        const nameInput = document.getElementById('profile-name-input');
+        const emailInput = document.getElementById('profile-email-input');
+        const preview = document.getElementById('profile-avatar-preview');
+
+        let nickname = nameInput ? nameInput.value.trim() : "";
+        if (!nickname) nickname = "JugadorAnónimo";
+
+        let email = emailInput ? emailInput.value.trim() : "";
+        let avatarSrc = preview ? preview.src : "";
+        let profilePic = avatarSrc.startsWith("data:image/svg+xml") ? "" : avatarSrc;
+
+        if (window.AndroidInterface && window.AndroidInterface.saveUserProfile) {
+            window.AndroidInterface.saveUserProfile(nickname, profilePic);
+        }
+        localStorage.setItem('player_email', email);
+
+        alert("¡Perfil guardado correctamente!");
+        document.getElementById('profile-screen').classList.add('hidden');
+        this.updateRecordDisplay();
+    }
+
+    onProfilePictureSelected(base64Image) {
+        const preview = document.getElementById('profile-avatar-preview');
+        if (preview) {
+            preview.src = base64Image;
+        }
+    }
+
+    onAuthSuccess(userJsonString) {
+        try {
+            const user = JSON.parse(userJsonString);
+
+            const nameInput = document.getElementById('profile-name-input');
+            if (nameInput) nameInput.value = user.name || "";
+
+            const emailInput = document.getElementById('profile-email-input');
+            if (emailInput) emailInput.value = user.email || "";
+
+            if (user.email) {
+                localStorage.setItem('player_email', user.email);
+            }
+
+            const preview = document.getElementById('profile-avatar-preview');
+            if (preview) {
+                preview.src = user.photoUrl || "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'><circle cx='40' cy='40' r='40' fill='%238b5cf6'/><text x='40' y='50' font-size='32' text-anchor='middle' fill='white'>👤</text></svg>";
+            }
+
+            const googleLoginBtn = document.getElementById('google-login-btn');
+            const logoutBtn = document.getElementById('logout-btn');
+
+            if (user.provider === 'google') {
+                if (googleLoginBtn) googleLoginBtn.classList.add('hidden');
+                if (logoutBtn) logoutBtn.classList.remove('hidden');
+            } else {
+                if (googleLoginBtn) googleLoginBtn.classList.remove('hidden');
+                if (logoutBtn) logoutBtn.classList.add('hidden');
+            }
+
+            if (window.AndroidInterface && window.AndroidInterface.saveUserProfile) {
+                let profilePic = (user.photoUrl && !user.photoUrl.startsWith("data:image/svg+xml")) ? user.photoUrl : "";
+                window.AndroidInterface.saveUserProfile(user.name || "Jugador de Google", profilePic);
+            }
+
+            alert("¡Sesión iniciada con éxito!");
+        } catch (e) {
+            console.error("Error al procesar onAuthSuccess:", e);
+        }
+    }
+
+    onAuthLogout() {
+        const nameInput = document.getElementById('profile-name-input');
+        if (nameInput) nameInput.value = "";
+
+        const emailInput = document.getElementById('profile-email-input');
+        if (emailInput) emailInput.value = "";
+
+        localStorage.removeItem('player_email');
+
+        const preview = document.getElementById('profile-avatar-preview');
+        if (preview) {
+            preview.src = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'><circle cx='40' cy='40' r='40' fill='%238b5cf6'/><text x='40' y='50' font-size='32' text-anchor='middle' fill='white'>👤</text></svg>";
+        }
+
+        const googleLoginBtn = document.getElementById('google-login-btn');
+        const logoutBtn = document.getElementById('logout-btn');
+
+        if (googleLoginBtn) googleLoginBtn.classList.remove('hidden');
+        if (logoutBtn) logoutBtn.classList.add('hidden');
+
+        if (window.AndroidInterface && window.AndroidInterface.saveUserProfile) {
+            window.AndroidInterface.saveUserProfile("", "");
+        }
+
+        alert("Sesión cerrada.");
+    }
+
+    onAuthError(message) {
+        alert("Error de autenticación: " + message);
+    }
+
+    persistCollectedCoins() {
+        if (this.coinsCollected > 0) {
+            let currentCoins = 0;
+            if (window.AndroidInterface && window.AndroidInterface.getCoins) {
+                currentCoins = window.AndroidInterface.getCoins();
+            } else {
+                currentCoins = parseInt(localStorage.getItem('player_coins') || '0', 10);
+            }
+            
+            const newTotal = currentCoins + this.coinsCollected;
+            
+            if (window.AndroidInterface && window.AndroidInterface.saveCoins) {
+                window.AndroidInterface.saveCoins(newTotal);
+            } else {
+                localStorage.setItem('player_coins', newTotal.toString());
+            }
+            
+            this.coinsCollected = 0; // Reset after persisting
+        }
+    }
+
+    loadShop() {
+        let coins = 0;
+        if (window.AndroidInterface && window.AndroidInterface.getCoins) {
+            coins = window.AndroidInterface.getCoins();
+        } else {
+            coins = parseInt(localStorage.getItem('player_coins') || '0', 10);
+        }
+
+        const display = document.getElementById('shop-coins-display');
+        if (display) display.textContent = coins;
+
+        // Ensure we load the latest stock from bridge/localStorage before showing details
+        this.doubleScoreCount = getDoubleScoreCount();
+        this.superPowerCount = getSuperPowerCount();
+
+        let firstPurchaseTime = getShopFirstPurchaseTime();
+        let countToday = getShopPurchaseCountToday();
+        const ONE_DAY = 24 * 60 * 60 * 1000;
+
+        // Reset rolling window if 24 hours have passed
+        if (firstPurchaseTime !== 0 && Date.now() - firstPurchaseTime >= ONE_DAY) {
+            firstPurchaseTime = 0;
+            countToday = 0;
+            saveShopLimits(countToday, firstPurchaseTime);
+        }
+        
+        let dailyLimitReached = false;
+        let limitMsg = "";
+        if (firstPurchaseTime !== 0 && Date.now() - firstPurchaseTime < ONE_DAY && countToday >= 5) {
+            dailyLimitReached = true;
+            let timeRemaining = ONE_DAY - (Date.now() - firstPurchaseTime);
+            let hours = Math.floor(timeRemaining / (1000 * 60 * 60));
+            let minutes = Math.floor((timeRemaining % (1000 * 60 * 60)) / (1000 * 60));
+            limitMsg = ` (Límite hoy: ${countToday}/5 - Espera ${hours}h ${minutes}m)`;
+        } else {
+            limitMsg = ` (Límite hoy: ${countToday}/5)`;
+        }
+
+        const titleText = document.querySelector('#shop-screen h1');
+        if (titleText) {
+            titleText.innerHTML = `TIENDA DE BUFFS<br><span style="font-size: 0.85rem; color: #94a3b8; font-weight: normal;">${limitMsg}</span>`;
+        }
+
+        // Update purchase buttons based on counts and limits
+        const buyDoubleBtn = document.getElementById('buy-double-score-btn');
+        if (buyDoubleBtn) {
+            buyDoubleBtn.innerHTML = `50 🪙<br><span style="font-size: 0.7rem; color: rgba(255,255,255,0.7); font-weight: normal;">En Stock: ${this.doubleScoreCount}</span>`;
+            buyDoubleBtn.disabled = coins < 50 || dailyLimitReached;
+        }
+
+        const buySuperBtn = document.getElementById('buy-super-power-btn');
+        if (buySuperBtn) {
+            buySuperBtn.innerHTML = `100 🪙<br><span style="font-size: 0.7rem; color: rgba(255,255,255,0.7); font-weight: normal;">En Stock: ${this.superPowerCount}</span>`;
+            buySuperBtn.disabled = coins < 100 || dailyLimitReached;
+        }
+    }
+
+    buyShopItem(itemId, cost) {
+        let coins = 0;
+        if (window.AndroidInterface && window.AndroidInterface.getCoins) {
+            coins = window.AndroidInterface.getCoins();
+        } else {
+            coins = parseInt(localStorage.getItem('player_coins') || '0', 10);
+        }
+
+        if (coins < cost) {
+            alert("No tienes suficientes monedas.");
+            return;
+        }
+
+        // Daily purchase limit (rolling 24 hours)
+        let firstPurchaseTime = getShopFirstPurchaseTime();
+        let countToday = getShopPurchaseCountToday();
+        const ONE_DAY = 24 * 60 * 60 * 1000;
+
+        if (firstPurchaseTime === 0 || Date.now() - firstPurchaseTime >= ONE_DAY) {
+            firstPurchaseTime = Date.now();
+            countToday = 0;
+            saveShopLimits(countToday, firstPurchaseTime);
+        }
+
+        if (countToday >= 5) {
+            let timeRemaining = ONE_DAY - (Date.now() - firstPurchaseTime);
+            let hours = Math.floor(timeRemaining / (1000 * 60 * 60));
+            let minutes = Math.floor((timeRemaining % (1000 * 60 * 60)) / (1000 * 60));
+            alert(`Límite diario alcanzado. Debes esperar ${hours}h ${minutes}m para volver a comprar.`);
+            return;
+        }
+
+        coins -= cost;
+        countToday++;
+
+        if (window.AndroidInterface && window.AndroidInterface.saveCoins) {
+            window.AndroidInterface.saveCoins(coins);
+        } else {
+            localStorage.setItem('player_coins', coins.toString());
+        }
+
+        saveShopLimits(countToday, firstPurchaseTime);
+
+        if (itemId === 'doubleScore') {
+            this.doubleScoreCount++;
+            saveDoubleScoreCount(this.doubleScoreCount);
+        } else if (itemId === 'superPower') {
+            this.superPowerCount++;
+            saveSuperPowerCount(this.superPowerCount);
+        }
+
+        playSFX('shop');
+        this.loadShop(); // Reload UI
+    }
+
+    updateBuffButtonsUI() {
+        const doubleBadge = document.getElementById('double-score-count-badge');
+        if (doubleBadge) doubleBadge.textContent = this.doubleScoreCount;
+
+        const superBadge = document.getElementById('super-power-count-badge');
+        if (superBadge) superBadge.textContent = this.superPowerCount;
+        
+        const doubleBtn = document.getElementById('activate-double-score-btn');
+        if (doubleBtn) {
+            // Keep button enabled, adjust opacity to indicate availability
+            doubleBtn.style.opacity = (this.doubleScoreCount <= 0) ? "0.35" : "0.85";
+            if (this.scoreMultiplier === 2) {
+                doubleBtn.style.background = "rgba(16, 185, 129, 0.4)";
+                doubleBtn.style.borderColor = "#10b981";
+                doubleBtn.style.boxShadow = "0 0 15px rgba(16, 185, 129, 0.5)";
+            } else {
+                doubleBtn.style.background = "rgba(255, 255, 255, 0.12)";
+                doubleBtn.style.borderColor = "rgba(255, 255, 255, 0.25)";
+                doubleBtn.style.boxShadow = "0 4px 12px rgba(0, 0, 0, 0.4)";
+            }
+        }
+
+        const superBtn = document.getElementById('activate-super-power-btn');
+        if (superBtn) {
+            // Keep button enabled, adjust opacity to indicate availability
+            superBtn.style.opacity = (this.superPowerCount <= 0) ? "0.35" : "0.85";
+            if (this.paddleTimer > 0 || this.fireballTimer > 0) {
+                superBtn.style.background = "rgba(245, 158, 11, 0.4)";
+                superBtn.style.borderColor = "#f59e0b";
+                superBtn.style.boxShadow = "0 0 15px rgba(245, 158, 11, 0.5)";
+            } else {
+                superBtn.style.background = "rgba(255, 255, 255, 0.12)";
+                superBtn.style.borderColor = "rgba(255, 255, 255, 0.25)";
+                superBtn.style.boxShadow = "0 4px 12px rgba(0, 0, 0, 0.4)";
+            }
+        }
+    }
+
+    activateDoubleScoreBuff() {
+        if (this.doubleScoreCount <= 0) {
+            this.showBuffToast("Sin fichas x2 en stock");
+            return;
+        }
+        if (this.scoreMultiplier === 2) {
+            this.showBuffToast("¡X2 ya está activo!");
+            return;
+        }
+        this.doubleScoreCount--;
+        saveDoubleScoreCount(this.doubleScoreCount);
+        
+        this.scoreMultiplier = 2;
+        this.doubleScoreTimer = 15.0;
+        this.showBuffToast(`¡X2 ACTIVADO! (Quedan: ${this.doubleScoreCount})`);
+        playSFX('powerup');
+        this.updateBuffButtonsUI();
+        this.saveGameState(); // Save game state to persist the active multiplier
+    }
+
+    activateSuperPowerBuff() {
+        if (this.superPowerCount <= 0) {
+            this.showBuffToast("Sin buffs en stock");
+            return;
+        }
+        if (this.paddleTimer > 0 || this.fireballTimer > 0) {
+            this.showBuffToast("¡Buff ya activo!");
+            return;
+        }
+        this.superPowerCount--;
+        saveSuperPowerCount(this.superPowerCount);
+        
+        // Choose one of the two randomly (Paddle size OR Fireball)
+        if (Math.random() < 0.5) {
+            this.paddle.width = this.paddle.baseWidth * 1.6;
+            this.paddleTimer = 15.0; // active for 15s
+        } else {
+            this.balls.forEach(ball => {
+                ball.isFireball = true;
+                ball.emoji = '🔥';
+            });
+            this.fireballTimer = 15.0; // active for 15s
+        }
+        this.showBuffToast(`¡BUFF ACTIVADO! (Quedan: ${this.superPowerCount})`);
+        playSFX('powerup');
+        this.updateBuffButtonsUI();
+        this.saveGameState(); // Save game state to persist the active super power timers
+    }
+
+    showBuffToast(message) {
+        const toast = document.getElementById('buff-toast');
+        if (toast) {
+            toast.textContent = message;
+            toast.classList.remove('buff-toast-hidden');
+            clearTimeout(this.toastTimeout);
+            this.toastTimeout = setTimeout(() => {
+                toast.classList.add('buff-toast-hidden');
+            }, 2000);
+        }
+    }
+
+    escapeHtml(str) {
+        if (!str) return "";
+        return str.toString()
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
+
+    buyExtraLife() {
+        let coins = 0;
+        if (window.AndroidInterface && window.AndroidInterface.getCoins) {
+            coins = window.AndroidInterface.getCoins();
+        } else {
+            coins = parseInt(localStorage.getItem('player_coins') || '0', 10);
+        }
+
+        // Persist collected coins so they are added to total, then deduct 10
+        this.persistCollectedCoins();
+
+        if (window.AndroidInterface && window.AndroidInterface.getCoins) {
+            coins = window.AndroidInterface.getCoins();
+        } else {
+            coins = parseInt(localStorage.getItem('player_coins') || '0', 10);
+        }
+
+        if (coins >= 10) {
+            coins -= 10;
+            if (window.AndroidInterface && window.AndroidInterface.saveCoins) {
+                window.AndroidInterface.saveCoins(coins);
+            } else {
+                localStorage.setItem('player_coins', coins.toString());
+            }
+
+            this.lives = 1;
+            this.coinsCollected = 0; // Reset run coins since we persisted them
+
+            document.getElementById('extra-life-modal').classList.add('hidden');
+            document.getElementById('game-buffs-container').classList.remove('hidden');
+
+            this.state = 'PLAYING';
+            this.paddle.width = this.paddle.baseWidth;
+            this.paddle.isInverted = false;
+            this.paddle.color = '#8b5cf6';
+            this.paddleTimer = 0;
+            this.fireballTimer = 0;
+            this.speedTimer = 0;
+            this.invertTimer = 0;
+
+            this.balls = [new Ball(this)];
+            this.updateUI();
+            this.saveGameState();
+            playSFX('shop');
+            startBGMusic();
+        } else {
+            this.declineExtraLife();
+        }
+    }
+
+    declineExtraLife() {
+        document.getElementById('extra-life-modal').classList.add('hidden');
+        this.state = 'GAMEOVER';
+        startBGMusic();
+        this.checkAndSaveScore();
+    }
+
+    updateDailyGiftUI() {
+        const giftBtn = document.getElementById('daily-gift-btn');
+        if (!giftBtn) return;
+
+        const lastClaim = getLastDailyGiftClaimTime();
+        const ONE_DAY = 24 * 60 * 60 * 1000;
+
+        if (lastClaim !== 0 && Date.now() - lastClaim < ONE_DAY) {
+            giftBtn.classList.add('claimed');
+            giftBtn.title = "Regalo ya cobrado hoy";
+        } else {
+            giftBtn.classList.remove('claimed');
+            giftBtn.title = "Cobrar regalo diario de 50 monedas";
+        }
+    }
+
+    claimDailyGift() {
+        const lastClaim = getLastDailyGiftClaimTime();
+        const ONE_DAY = 24 * 60 * 60 * 1000;
+
+        if (lastClaim !== 0 && Date.now() - lastClaim < ONE_DAY) {
+            let timeRemaining = ONE_DAY - (Date.now() - lastClaim);
+            let hours = Math.floor(timeRemaining / (1000 * 60 * 60));
+            let minutes = Math.floor((timeRemaining % (1000 * 60 * 60)) / (1000 * 60));
+            alert(`Ya has cobrado tu regalo de hoy. Debes esperar ${hours}h ${minutes}m.`);
+            return;
+        }
+
+        let coins = 0;
+        if (window.AndroidInterface && window.AndroidInterface.getCoins) {
+            coins = window.AndroidInterface.getCoins();
+        } else {
+            coins = parseInt(localStorage.getItem('player_coins') || '0', 10);
+        }
+
+        coins += 50;
+
+        if (window.AndroidInterface && window.AndroidInterface.saveCoins) {
+            window.AndroidInterface.saveCoins(coins);
+        } else {
+            localStorage.setItem('player_coins', coins.toString());
+        }
+
+        saveLastDailyGiftClaimTime(Date.now());
+
+        playSFX('shop');
+        this.updateDailyGiftUI();
+
+        const shopCoinsDisplay = document.getElementById('shop-coins-display');
+        if (shopCoinsDisplay) {
+            shopCoinsDisplay.textContent = coins;
+        }
+
+        alert("has cobrado tus 50 monedas de regalo diarias ");
     }
 
     loop(timestamp) {
