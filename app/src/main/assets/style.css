@@ -332,25 +332,98 @@ button:active {
     margin: 12px 0; /* Margen desigual */
 }
 
-/* --- Zona Inferior (Safe Area Push & Record) --- */
-.bottom-bar {
-    height: calc(60px + env(safe-area-inset-bottom));
-    padding-bottom: env(safe-area-inset-bottom);
+/* --- Marquesina Superior de Récord --- */
+.marquee-container {
     width: 100%;
-    background: rgba(8, 3, 17, 0.7);
-    border-top: 2px solid #fff;
-    display: flex;
-    justify-content: center;
-    align-items: center;
+    background: rgba(0, 0, 0, 0.8);
+    border-bottom: 2px solid #eab308;
+    overflow: hidden;
+    position: relative;
+    padding: 5px 0;
     z-index: 5;
 }
 
-.bottom-record-text {
+.marquee-text {
+    display: inline-block;
+    white-space: nowrap;
     font-size: 0.95rem;
     font-weight: bold;
     color: #eab308;
-    text-shadow: 0 0 15px rgba(234, 179, 8, 0.5);
-    letter-spacing: 1px;
+    text-shadow: 0 0 10px rgba(234, 179, 8, 0.8);
+    letter-spacing: 2px;
+    animation: marquee 15s linear infinite;
+    /* Adding padding to start off-screen if container is smaller */
+    padding-left: 100%;
+    will-change: transform;
+    transform: translateZ(0);
+}
+
+@keyframes marquee {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-100%); }
+}
+
+/* --- Señalética de Zona de Control Táctil --- */
+.touch-zone-indicator {
+    height: calc(80px + env(safe-area-inset-bottom));
+    padding-bottom: env(safe-area-inset-bottom);
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: linear-gradient(to top, rgba(255, 255, 255, 0.03), transparent);
+    border-radius: 20px 20px 0 0;
+    padding: 0 40px;
+    box-sizing: border-box;
+    z-index: 5;
+    pointer-events: none;
+}
+
+.pixel-arrow {
+    width: 24px;
+    height: 24px;
+    background-color: transparent;
+    position: relative;
+    will-change: transform;
+    transform: translateZ(0);
+}
+
+.pixel-arrow::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 14px;
+    height: 14px;
+    border-top: 5px solid rgba(255, 255, 255, 0.7);
+    border-right: 5px solid rgba(255, 255, 255, 0.7);
+    box-shadow: 2px -2px 0 rgba(0, 0, 0, 0.4);
+}
+
+.pixel-arrow.left {
+    animation: slideArrowLeft 1.2s ease-in-out infinite alternate;
+}
+
+.pixel-arrow.left::before {
+    transform: translate(-25%, -50%) rotate(-135deg);
+}
+
+.pixel-arrow.right {
+    animation: slideArrowRight 1.2s ease-in-out infinite alternate;
+}
+
+.pixel-arrow.right::before {
+    transform: translate(-75%, -50%) rotate(45deg);
+}
+
+@keyframes slideArrowLeft {
+    from { transform: translateX(12px) translateZ(0); opacity: 0.2; }
+    to { transform: translateX(-12px) translateZ(0); opacity: 1; }
+}
+
+@keyframes slideArrowRight {
+    from { transform: translateX(-12px) translateZ(0); opacity: 0.2; }
+    to { transform: translateX(12px) translateZ(0); opacity: 1; }
 }
 
 /* --- Estilos para Input del Nickname --- */
@@ -809,13 +882,17 @@ button:active {
 }
 
 .shop-item-img {
-    width: 52px;
-    height: 52px;
-    object-fit: cover;
+    width: 60px;
+    height: 60px;
+    object-fit: contain;
     border-radius: 50%;
     border: 1.5px solid rgba(255, 255, 255, 0.2);
     background: rgba(0, 0, 0, 0.2);
     filter: drop-shadow(0 0 5px rgba(255, 255, 255, 0.3));
+}
+
+.skin-card .shop-item-img {
+    transform: scale(1.4);
 }
 
 .skin-card .shop-item-name {

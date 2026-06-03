@@ -1,4 +1,180 @@
+// --- Android Bridge Mock for Cross-Platform Web Support (e.g. itch.io) ---
+if (typeof window.AndroidInterface === 'undefined') {
+    const soundCache = {};
+    let bgMusic = null;
+    let isMuted = localStorage.getItem('audio_muted') === 'true';
+    let musicVol = parseFloat(localStorage.getItem('music_volume') || '0.5');
+    let sfxVol = parseFloat(localStorage.getItem('sfx_volume') || '0.8');
+
+    function getAudioFile(name) {
+        if (!soundCache[name]) {
+            soundCache[name] = new Audio(name + '.mp3');
+        }
+        return soundCache[name];
+    }
+
+    window.AndroidInterface = {
+        playSFX: function(name) {
+            if (isMuted) return;
+            try {
+                const original = getAudioFile(name);
+                const clone = original.cloneNode(true);
+                clone.volume = sfxVol;
+                clone.play().catch(e => console.log("SFX play prevented:", e));
+            } catch (e) {
+                console.error("Error playing Web SFX:", e);
+            }
+        },
+        startMusic: function() {
+            try {
+                if (!bgMusic) {
+                    bgMusic = new Audio('bg_music.mp3');
+                    bgMusic.loop = true;
+                }
+                bgMusic.volume = isMuted ? 0 : musicVol;
+                bgMusic.play().catch(e => console.log("Music play prevented:", e));
+            } catch (e) {
+                console.error("Error playing Web Music:", e);
+            }
+        },
+        pauseMusic: function() {
+            if (bgMusic) {
+                try {
+                    bgMusic.pause();
+                } catch (e) {
+                    console.error("Error pausing Web Music:", e);
+                }
+            }
+        },
+        toggleMute: function() {
+            isMuted = !isMuted;
+            localStorage.setItem('audio_muted', isMuted ? 'true' : 'false');
+            if (bgMusic) {
+                bgMusic.volume = isMuted ? 0 : musicVol;
+            }
+            return isMuted;
+        },
+        isMuted: function() {
+            return isMuted;
+        },
+        getMusicVolume: function() {
+            return musicVol;
+        },
+        setMusicVolume: function(volume) {
+            musicVol = volume;
+            localStorage.setItem('music_volume', musicVol.toString());
+            if (bgMusic) {
+                bgMusic.volume = isMuted ? 0 : musicVol;
+            }
+        },
+        getSfxVolume: function() {
+            return sfxVol;
+        },
+        setSfxVolume: function(volume) {
+            sfxVol = volume;
+            localStorage.setItem('sfx_volume', sfxVol.toString());
+        },
+        getUnlockedSkins: function() {
+            return localStorage.getItem('player_unlocked_skins') || 'default';
+        },
+        saveSkins: function(unlockedStr, equipped) {
+            localStorage.setItem('player_unlocked_skins', unlockedStr);
+            localStorage.setItem('player_equipped_skin', equipped);
+        },
+        getEquippedSkin: function() {
+            return localStorage.getItem('player_equipped_skin') || 'default';
+        },
+        loadInventory: function() {
+            return localStorage.getItem('player_owned_ball_skins') || '["default"]';
+        },
+        saveInventory: function(jsonStr) {
+            localStorage.setItem('player_owned_ball_skins', jsonStr);
+        },
+        getEquippedBallSkin: function() {
+            return localStorage.getItem('player_equipped_ball_skin') || 'default';
+        },
+        saveEquippedBallSkin: function(skinId) {
+            localStorage.setItem('player_equipped_ball_skin', skinId);
+        },
+        saveSettings: function(highGraphics) {
+            localStorage.setItem('high_graphics_enabled', highGraphics ? 'true' : 'false');
+        },
+        loadSettings: function() {
+            var val = localStorage.getItem('high_graphics_enabled');
+            return val === null ? true : (val === 'true');
+        },
+        getMaxLevel: function() {
+            var val = localStorage.getItem('max_level');
+            return val ? parseInt(val, 10) : 1;
+        },
+        getHighScore: function() {
+            var val = localStorage.getItem('high_score');
+            return val ? parseInt(val, 10) : 0;
+        },
+        saveProgress: function(maxLevel, highScore) {
+            localStorage.setItem('max_level', maxLevel.toString());
+            localStorage.setItem('high_score', highScore.toString());
+        },
+        getCoins: function() {
+            var val = localStorage.getItem('coins_count');
+            return val ? parseInt(val, 10) : 0;
+        },
+        saveCoins: function(coins) {
+            localStorage.setItem('coins_count', coins.toString());
+        },
+        getPlayerNickname: function() {
+            return localStorage.getItem('player_nickname') || "";
+        },
+        getPlayerProfilePic: function() {
+            return localStorage.getItem('player_profile_pic') || "";
+        },
+        saveUserProfile: function(nickname, profilePic) {
+            localStorage.setItem('player_nickname', nickname);
+            localStorage.setItem('player_profile_pic', profilePic);
+        },
+        saveProgressWithProfile: function(level, score, nickname, profilePic) {
+            localStorage.setItem('max_level', level.toString());
+            localStorage.setItem('high_score', score.toString());
+            localStorage.setItem('player_nickname', nickname);
+            localStorage.setItem('player_profile_pic', profilePic);
+        },
+        getAuthStatus: function() {
+            return localStorage.getItem('auth_status') || "{}";
+        },
+        logout: function() {
+            localStorage.removeItem('auth_status');
+            localStorage.removeItem('player_nickname');
+            localStorage.removeItem('player_profile_pic');
+        },
+        saveSession: function(jsonState) {
+            localStorage.setItem('player_session_state', jsonState);
+        },
+        loadSession: function() {
+            return localStorage.getItem('player_session_state');
+        },
+        clearSession: function() {
+            localStorage.removeItem('player_session_state');
+        },
+        getDoubleScoreCount: function() {
+            var dCount = parseInt(localStorage.getItem('player_double_score_count') || '0', 10);
+            return isNaN(dCount) ? 0 : dCount;
+        },
+        saveDoubleScoreCount: function(count) {
+            localStorage.setItem('player_double_score_count', count.toString());
+        },
+        getSuperPowerCount: function() {
+            var sCount = parseInt(localStorage.getItem('player_super_power_count') || '0', 10);
+            return isNaN(sCount) ? 0 : sCount;
+        },
+        saveSuperPowerCount: function(count) {
+            localStorage.setItem('player_super_power_count', count.toString());
+        }
+    };
+}
+
 // --- DOM Cache Helpers to avoid layout thrashing and DOM search bottlenecks ---
+let consecutiveWins = 0;
+
 const domCache = {};
 function getCachedElement(id) {
     if (!domCache[id]) {
@@ -420,24 +596,24 @@ class Paddle {
     }
 
     draw(ctx) {
-        const baseColor = this.isInverted ? '#dc2626' : (this.game.getEquippedSkinColor ? this.game.getEquippedSkinColor() : '#8b5cf6');
-        ctx.fillStyle = baseColor;
+        this.drawColor = this.isInverted ? '#dc2626' : (this.game.getEquippedSkinColor ? this.game.getEquippedSkinColor() : '#8b5cf6');
+        ctx.fillStyle = this.drawColor;
         
         if (this.game.highGraphicsEnabled) {
             ctx.shadowBlur = 15;
-            ctx.shadowColor = baseColor;
+            ctx.shadowColor = this.drawColor;
             ctx.beginPath();
-            ctx.roundRect(this.x, this.y, this.width, this.height, 10);
+            ctx.roundRect(Math.floor(this.x), Math.floor(this.y), Math.floor(this.width), Math.floor(this.height), 10);
             ctx.fill();
             ctx.shadowBlur = 0; // Reset shadow
 
             // Shine effect
             ctx.fillStyle = 'rgba(255, 255, 255, 0.35)';
             ctx.beginPath();
-            ctx.roundRect(this.x + 5, this.y + 2, this.width - 10, this.height / 2 - 2, 5);
+            ctx.roundRect(Math.floor(this.x + 5), Math.floor(this.y + 2), Math.floor(this.width - 10), Math.floor(this.height / 2 - 2), 5);
             ctx.fill();
         } else {
-            ctx.fillRect(this.x, this.y, this.width, this.height);
+            ctx.fillRect(Math.floor(this.x), Math.floor(this.y), Math.floor(this.width), Math.floor(this.height));
         }
     }
 }
@@ -591,13 +767,13 @@ class Ball {
             }
 
             if (this.game.skinImg && this.game.ballFlashTimer <= 0) {
-                const imgSize = this.size * 1.35;
-                const offset = -imgSize / 2;
+                this.drawImgSize = this.size * 1.35;
+                this.drawOffset = -this.drawImgSize / 2;
                 ctx.save();
                 ctx.beginPath();
                 ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
                 ctx.clip();
-                ctx.drawImage(this.game.skinImg, Math.floor(offset), Math.floor(offset), imgSize, imgSize);
+                ctx.drawImage(this.game.skinImg, Math.floor(this.drawOffset), Math.floor(this.drawOffset), this.drawImgSize, this.drawImgSize);
                 ctx.restore();
             } else {
                 ctx.font = `${this.size}px serif`;
@@ -608,14 +784,14 @@ class Ball {
             ctx.restore();
         } else {
             if (this.game.skinImg && this.game.ballFlashTimer <= 0) {
-                const imgSize = this.size * 1.35;
-                const offsetX = this.x - imgSize / 2;
-                const offsetY = this.y - imgSize / 2;
+                this.drawImgSize = this.size * 1.35;
+                this.drawOffsetX = this.x - this.drawImgSize / 2;
+                this.drawOffsetY = this.y - this.drawImgSize / 2;
                 ctx.save();
                 ctx.beginPath();
                 ctx.arc(Math.floor(this.x), Math.floor(this.y), this.radius, 0, Math.PI * 2);
                 ctx.clip();
-                ctx.drawImage(this.game.skinImg, Math.floor(offsetX), Math.floor(offsetY), imgSize, imgSize);
+                ctx.drawImage(this.game.skinImg, Math.floor(this.drawOffsetX), Math.floor(this.drawOffsetY), this.drawImgSize, this.drawImgSize);
                 ctx.restore();
             } else {
                 ctx.font = `${this.size}px serif`;
@@ -1012,6 +1188,14 @@ class Game {
         this.balls = [new Ball(this)]; // Multiple balls list
         this.blocks = [];
         this.powerUps = [];
+        
+        // Coin pool for Zero GC rain
+        this.coinPool = [];
+        for (let i = 0; i < 100; i++) {
+            const c = new PowerUp(this, 0, 0, 'coin');
+            c.active = false;
+            this.coinPool.push(c);
+        }
         
         // Time tracking for Delta Time
         this.lastTime = 0;
@@ -1928,30 +2112,70 @@ class Game {
             this.flawlessStreak = true;
         }
 
-        const { rows, cols, layout } = this.generateLevelLayout(level);
-        const padding = 6;
-        const blockWidth = 55; // Adjusted for Portrait
-        const blockHeight = 25;
-        
-        const totalGridWidth = cols * blockWidth + (cols - 1) * padding;
-        const offsetX = (this.width - totalGridWidth) / 2;
-        const offsetY = 80; // Adjusted lower to account for safe area top padding
+        this.isBonusLevel = (consecutiveWins > 0 && consecutiveWins % 5 === 0);
 
-        for (let r = 0; r < rows; r++) {
-            for (let c = 0; c < cols; c++) {
-                if (layout[r][c]) {
-                    const health = this.determineBlockHealth(level, r, c, rows, cols);
+        if (this.isBonusLevel) {
+            this.isScoreFever = true;
+            this.balls[0].isFireball = true;
+            this.fireballTimer = Infinity;
+            this.lluviaMonedas();
+
+            const rows = 14; 
+            const cols = 10; 
+            const padding = 3;
+            const blockWidth = 40; 
+            const blockHeight = 15;
+            
+            const totalGridWidth = cols * blockWidth + (cols - 1) * padding;
+            const offsetX = (this.width - totalGridWidth) / 2;
+            const offsetY = 80;
+
+            for (let r = 0; r < rows; r++) {
+                for (let c = 0; c < cols; c++) {
                     const blockX = offsetX + c * (blockWidth + padding);
                     const blockY = offsetY + r * (blockHeight + padding);
-                    this.blocks.push(new Block(this, blockX, blockY, r, health));
+                    const b = new Block(this, blockX, blockY, r, 1);
+                    b.width = blockWidth;
+                    b.height = blockHeight;
+                    this.blocks.push(b);
                 }
             }
+        } else {
+            const { rows, cols, layout } = this.generateLevelLayout(level);
+            const padding = 6;
+            const blockWidth = 55; // Adjusted for Portrait
+            const blockHeight = 25;
+            
+            const totalGridWidth = cols * blockWidth + (cols - 1) * padding;
+            const offsetX = (this.width - totalGridWidth) / 2;
+            const offsetY = 80; // Adjusted lower to account for safe area top padding
+
+            for (let r = 0; r < rows; r++) {
+                for (let c = 0; c < cols; c++) {
+                    if (layout[r][c]) {
+                        const health = this.determineBlockHealth(level, r, c, rows, cols);
+                        const blockX = offsetX + c * (blockWidth + padding);
+                        const blockY = offsetY + r * (blockHeight + padding);
+                        this.blocks.push(new Block(this, blockX, blockY, r, health));
+                    }
+                }
+            }
+        }
+    }
+
+    lluviaMonedas() {
+        for (this.i = 0; this.i < this.coinPool.length; this.i++) {
+            this.coinPool[this.i].x = Math.floor(Math.random() * (this.width - 20) + 10);
+            this.coinPool[this.i].y = Math.floor(-(Math.random() * 2000) - 50);
+            this.coinPool[this.i].speedY = Math.floor(Math.random() * 200 + 100);
+            this.coinPool[this.i].active = true;
         }
     }
 
     loseLife() {
         this.lives--;
         this.flawlessStreak = false;
+        consecutiveWins = 0;
         this.updateUI();
         this.triggerShake(0.45, 18);
         playSFX('lost');
@@ -1997,7 +2221,15 @@ class Game {
     updateUI() {
         getCachedElement('level-display').textContent = this.level;
         getCachedElement('score-display').textContent = this.score;
-        getCachedElement('lives-display').textContent = '❤️'.repeat(Math.max(0, this.lives));
+        
+        let livesText = '';
+        if (this.lives <= 5) {
+            livesText = '❤️'.repeat(Math.max(0, this.lives));
+        } else {
+            livesText = '❤️ x' + this.lives;
+        }
+        getCachedElement('lives-display').textContent = livesText;
+        
         const coinsDisplay = getCachedElement('coins-display');
         if (coinsDisplay) {
             coinsDisplay.textContent = this.coinsCollected;
@@ -2005,9 +2237,17 @@ class Game {
     }
 
     spawnPowerUp(x, y) {
-        if (Math.random() > 0.18) return; // 18% chance
+        if (this.isBonusLevel) {
+            if (Math.random() <= 0.25) {
+                this.powerUps.push(new PowerUp(this, x, y, 'life'));
+                return;
+            }
+            if (Math.random() > 0.40) return; // Overall ~40% drop rate in bonus level
+        } else {
+            if (Math.random() > 0.18) return; // 18% chance
+        }
 
-        const types = ['life', 'long', 'short', 'fireball', 'multiball', 'fast', 'inverted'];
+        const types = ['life', 'long', 'short', 'fireball', 'multiball', 'fast', 'inverted', 'coin'];
         const type = types[Math.floor(Math.random() * types.length)];
         this.powerUps.push(new PowerUp(this, x, y, type));
     }
@@ -2287,6 +2527,7 @@ class Game {
     loadNextLevel() {
         getCachedElement('level-cleared-screen').classList.add('hidden');
         this.level++;
+        consecutiveWins++;
         if (this.level > 50) {
             this.state = 'VICTORY';
             this.checkAndSaveScore();
@@ -2362,10 +2603,22 @@ class Game {
             this.balls[this.i].update(dt);
         }
         
-        // Update paddle, powerups, and particles
+        // Update paddle, powerups, particles, and coinPool
         this.paddle.update();
         for (this.i = 0; this.i < this.powerUps.length; this.i++) {
             this.powerUps[this.i].update(dt);
+        }
+        for (this.i = 0; this.i < this.coinPool.length; this.i++) {
+            if (this.coinPool[this.i].active) {
+                this.coinPool[this.i].update(dt);
+                // Recycle if inactive (fallen or picked up) and we are still in Bonus Level
+                if (!this.coinPool[this.i].active && this.isBonusLevel) {
+                    this.coinPool[this.i].y = Math.floor(-(Math.random() * 2000) - 50);
+                    this.coinPool[this.i].x = Math.floor(Math.random() * (this.width - 20) + 10);
+                    this.coinPool[this.i].speedY = Math.floor(Math.random() * 200 + 100);
+                    this.coinPool[this.i].active = true;
+                }
+            }
         }
         for (this.i = 0; this.i < this.particlePool.length; this.i++) {
             if (this.particlePool[this.i].active) this.particlePool[this.i].update(dt);
@@ -2373,10 +2626,17 @@ class Game {
         
         this.checkCollisions();
 
-        // Remove balls that fall below screen inline (Zero GC filter)
+        // Handle balls falling below screen or bouncing off the safety net
         this.j = 0;
         for (this.i = 0; this.i < this.balls.length; this.i++) {
-            if (this.balls[this.i].y - this.balls[this.i].radius <= this.height) {
+            if (this.isBonusLevel && this.balls[this.i].y + this.balls[this.i].radius >= this.height - 80) {
+                // Safety net bounce
+                this.balls[this.i].y = this.height - 80 - this.balls[this.i].radius;
+                this.balls[this.i].speedY = -Math.abs(this.balls[this.i].speedY);
+                this.balls[this.j] = this.balls[this.i];
+                this.j++;
+                // Optional: visual or audio cue on shield hit
+            } else if (this.balls[this.i].y - this.balls[this.i].radius <= this.height) {
                 this.balls[this.j] = this.balls[this.i];
                 this.j++;
             }
@@ -2411,6 +2671,30 @@ class Game {
         }
 
         if (this.state === 'PLAYING' || this.state === 'PAUSED') {
+            // Dibujar láser protector en Nivel Bonus sin shadowBlur (Zero GC / Alta VRAM)
+            if (this.isBonusLevel) {
+                this.ctx.save();
+                this.ctx.globalAlpha = 0.6 + Math.sin(Date.now() / 150) * 0.4;
+                
+                // Línea gruesa de resplandor (Overdraw effect)
+                this.ctx.beginPath();
+                this.ctx.moveTo(0, Math.floor(this.height - 80));
+                this.ctx.lineTo(this.width, Math.floor(this.height - 80));
+                this.ctx.strokeStyle = 'rgba(0, 255, 204, 0.4)';
+                this.ctx.lineWidth = 10;
+                this.ctx.stroke();
+
+                // Línea fina central
+                this.ctx.beginPath();
+                this.ctx.moveTo(0, Math.floor(this.height - 80));
+                this.ctx.lineTo(this.width, Math.floor(this.height - 80));
+                this.ctx.strokeStyle = '#00ffff';
+                this.ctx.lineWidth = 2;
+                this.ctx.stroke();
+                
+                this.ctx.restore();
+            }
+
             this.paddle.draw(this.ctx);
             for (this.i = 0; this.i < this.balls.length; this.i++) {
                 this.balls[this.i].draw(this.ctx);
@@ -2420,6 +2704,18 @@ class Game {
             }
             for (this.i = 0; this.i < this.powerUps.length; this.i++) {
                 this.powerUps[this.i].draw(this.ctx);
+            }
+            
+            // Batch rendering para la lluvia de monedas (Zero Overhead)
+            if (this.isBonusLevel) {
+                this.ctx.font = "24px serif";
+                this.ctx.textAlign = 'center';
+                this.ctx.textBaseline = 'middle';
+                for (this.i = 0; this.i < this.coinPool.length; this.i++) {
+                    if (this.coinPool[this.i].active) {
+                        this.ctx.fillText(this.coinPool[this.i].emoji, Math.floor(this.coinPool[this.i].x), Math.floor(this.coinPool[this.i].y));
+                    }
+                }
             }
             for (this.i = 0; this.i < this.particlePool.length; this.i++) {
                 if (this.particlePool[this.i].active) this.particlePool[this.i].draw(this.ctx);
