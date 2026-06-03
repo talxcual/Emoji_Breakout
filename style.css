@@ -1,3 +1,18 @@
+
+@font-face {
+  font-family: 'Press Start 2P';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('./fonts/press-start-2p.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Righteous';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('./fonts/righteous.woff2') format('woff2');
+}
 @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Righteous&display=swap');
 
 :root {
