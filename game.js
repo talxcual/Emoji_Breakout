@@ -621,7 +621,7 @@ class Paddle {
 class Ball {
     constructor(game) {
         this.game = game;
-        this.size = 48; // Ball diameter / Emoji size
+        this.size = 40; // Ball diameter / Emoji size
         this.radius = this.size / 2;
         this.emoji = '⚪'; // Default ball emoji
         this.speedMultiplier = 1;
@@ -1959,6 +1959,28 @@ class Game {
         const bottomHighScore = getCachedElement('bottom-high-score-display');
         if (bottomHighScore) {
             bottomHighScore.textContent = highScore;
+        }
+
+        // Fetch top 3 global ranking for the marquee
+        if (typeof firebase !== 'undefined' && firebase.apps.length) {
+            firebase.database().ref('leaderboard').orderByChild('score').limitToLast(3).once('value').then(snap => {
+                let top3 = [];
+                snap.forEach(child => {
+                    top3.push(child.val());
+                });
+                top3.reverse();
+                if (top3.length > 0) {
+                    const marqueeText = document.querySelector('.marquee-text');
+                    if (marqueeText) {
+                        const medals = ["🥇", "🥈", "🥉"];
+                        let text = "";
+                        for(let i=0; i<top3.length; i++) {
+                            text += `${medals[i]} ${top3[i].name} - ${top3[i].score} PTS   `;
+                        }
+                        marqueeText.innerHTML = text.toUpperCase();
+                    }
+                }
+            }).catch(e => console.error("Error fetching top 3", e));
         }
     }
 
@@ -3700,6 +3722,17 @@ class Game {
             }
             grid.appendChild(btn);
         }
+
+        const comingSoon = document.createElement('div');
+        comingSoon.style.width = '100%';
+        comingSoon.style.textAlign = 'center';
+        comingSoon.style.color = '#888';
+        comingSoon.style.marginTop = '20px';
+        comingSoon.style.fontFamily = "'Press Start 2P', cursive";
+        comingSoon.style.fontSize = '0.8rem';
+        comingSoon.style.gridColumn = '1 / -1';
+        comingSoon.innerHTML = '🔒 PRÓXIMAMENTE<br><span style="font-size:0.6rem; margin-top:5px; display:inline-block;">50 niveles más con candado</span>';
+        grid.appendChild(comingSoon);
     }
 
     renderSkinsSelector() {
@@ -3877,12 +3910,15 @@ class Game {
                 if (snap.exists()) {
                     snap.forEach(child => {
                         let name = child.val().name;
-                        if (name && name.toUpperCase() !== "PAPIKOFLA" && name.toUpperCase() !== "XTALCUAL") {
+                        if (name && name.toUpperCase() !== "PAPIKOFLA" && name.toUpperCase() !== "XTALCUAL" && name.toUpperCase() !== "MR.MAX") {
                             testers.add(name);
                         }
                     });
                 }
-                let listHTML = Array.from(testers).map(t => `<p class="beta-tester-name">${this.escapeHtml(t)}</p>`).join('');
+                let testersArr = Array.from(testers);
+                testersArr.unshift("MR.max");
+                testersArr.unshift("PAPIKOFLA");
+                let listHTML = testersArr.map(t => `<p class="beta-tester-name">${this.escapeHtml(t)}</p>`).join('');
                 listContainer.innerHTML = listHTML || "<p class='beta-tester-name'>Ninguno encontrado</p>";
             }).catch(e => {
                 listContainer.innerHTML = "<p class='beta-tester-name'>Error al cargar testers</p>";
