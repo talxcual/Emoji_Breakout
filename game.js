@@ -233,6 +233,29 @@ function toggleMuteState() {
     return false;
 }
 
+let creditsAudio = null;
+function playCreditsMusic() {
+    if (!creditsAudio) {
+        creditsAudio = new Audio('the_mountain-happy-end-158086.mp3');
+        creditsAudio.loop = true;
+    }
+    creditsAudio.volume = isGameMuted() ? 0 : 0.6;
+    if (creditsAudio.paused) {
+        creditsAudio.play().catch(e => console.log("Credits music blocked", e));
+    }
+}
+function stopCreditsMusic() {
+    if (creditsAudio && !creditsAudio.paused) {
+        creditsAudio.pause();
+        creditsAudio.currentTime = 0;
+    }
+}
+function updateCreditsMusicMute(muted) {
+    if (creditsAudio) {
+        creditsAudio.volume = muted ? 0 : 0.6;
+    }
+}
+
 function isGameMuted() {
     if (window.AndroidInterface) {
         try {
@@ -1947,6 +1970,9 @@ class Game {
     toggleMute() {
         const muted = toggleMuteState();
         getCachedElement('mute-btn').textContent = muted ? '🔇' : '🔊';
+        if (typeof updateCreditsMusicMute === 'function') {
+            updateCreditsMusicMute(muted);
+        }
     }
 
     updateMuteButtonVisual() {
@@ -3900,6 +3926,8 @@ class Game {
 
     showCreditsScreen() {
         this.state = 'CREDITS';
+        pauseBGMusic();
+        playCreditsMusic();
         getCachedElement('credits-screen').classList.remove('hidden');
         const listContainer = document.getElementById('beta-testers-list');
         listContainer.innerHTML = 'Cargando testers...';
@@ -3959,6 +3987,8 @@ document.addEventListener("DOMContentLoaded", function() {
     const closeCreditsBtn = document.getElementById('close-credits-btn');
     if (closeCreditsBtn) {
         closeCreditsBtn.addEventListener('click', () => {
+            stopCreditsMusic();
+            startBGMusic();
             getCachedElement('credits-screen').classList.add('hidden');
             getCachedElement('start-screen').classList.remove('hidden');
             if (window.gameInstance) {
