@@ -621,9 +621,9 @@ class Paddle {
 class Ball {
     constructor(game) {
         this.game = game;
-        this.size = 34; // Ball diameter / Emoji size
+        this.size = 48; // Ball diameter / Emoji size
         this.radius = this.size / 2;
-        this.emoji = '🏐'; // Default ball emoji
+        this.emoji = '⚪'; // Default ball emoji
         this.speedMultiplier = 1;
         this.damage = 1;
         this.isFireball = false;
@@ -660,7 +660,7 @@ class Ball {
         
         const skinId = this.game.equippedBallSkin || 'default';
         const skin = this.game.ballSkinsDict && this.game.ballSkinsDict[skinId];
-        this.emoji = skin ? (Array.from(skin.emoji)[0] || '🏐') : '🏐';
+        this.emoji = skin ? (Array.from(skin.emoji)[0] || '⚪') : '⚪';
         
         this.stretchX = 1.0;
         this.stretchY = 1.0;
@@ -1231,7 +1231,7 @@ class Game {
         };
 
         this.ballSkinsDict = {
-            'default': { name: "Estándar 🏐", emoji: "🏐", price: 0, src: null },
+            'default': { name: "Básica ⚪", emoji: "⚪", price: 0, src: null },
             'pelota_bigote': { name: "Balón Bigotudo ⚽🧔", emoji: "⚽", price: 200, src: "pelota_bigote.png" },
             'ojo': { name: "Ojo Pelado 👁️", emoji: "👁️", price: 400, src: "ojo.png" },
             'dona': { name: "Dona Glaseada 🍩", emoji: "🍩", price: 600, src: "dona.png" },
