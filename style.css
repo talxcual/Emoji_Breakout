@@ -1505,6 +1505,8 @@ input:checked + .slider:before {
 .credits-scroll-content {
     position: absolute;
     top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
     width: 90%;
     max-width: 600px;
     text-align: center;

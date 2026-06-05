@@ -2540,6 +2540,12 @@ class Game {
     }
 
     update(dt) {
+        if (this.state === 'END_SEQUENCE') {
+            for (this.i = 0; this.i < this.particlePool.length; this.i++) {
+                if (this.particlePool[this.i].active) this.particlePool[this.i].update(dt);
+            }
+            return;
+        }
         if (this.state !== 'PLAYING') return;
 
         // Reduce screen shake duration
@@ -2714,6 +2720,10 @@ class Game {
                     }
                 }
             }
+            for (this.i = 0; this.i < this.particlePool.length; this.i++) {
+                if (this.particlePool[this.i].active) this.particlePool[this.i].draw(this.ctx);
+            }
+        } else if (this.state === 'END_SEQUENCE') {
             for (this.i = 0; this.i < this.particlePool.length; this.i++) {
                 if (this.particlePool[this.i].active) this.particlePool[this.i].draw(this.ctx);
             }
