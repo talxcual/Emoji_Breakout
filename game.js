@@ -621,7 +621,7 @@ class Paddle {
 class Ball {
     constructor(game) {
         this.game = game;
-        this.size = 24; // Ball diameter / Emoji size
+        this.size = 34; // Ball diameter / Emoji size
         this.radius = this.size / 2;
         this.emoji = '🏐'; // Default ball emoji
         this.speedMultiplier = 1;
