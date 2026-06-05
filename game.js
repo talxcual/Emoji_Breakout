@@ -3757,7 +3757,7 @@ class Game {
         comingSoon.style.fontFamily = "'Press Start 2P', cursive";
         comingSoon.style.fontSize = '0.8rem';
         comingSoon.style.gridColumn = '1 / -1';
-        comingSoon.innerHTML = '🔒 PRÓXIMAMENTE<br><span style="font-size:0.6rem; margin-top:5px; display:inline-block;">50 niveles más con candado</span>';
+        comingSoon.innerHTML = '🔒 PRÓXIMAMENTE<br><span style="font-size:0.6rem; margin-top:5px; display:inline-block;">50 niveles más</span>';
         grid.appendChild(comingSoon);
     }
 
