@@ -1525,15 +1525,15 @@ input:checked + .slider:before {
 }
 
 .credits-name {
-    font-family: 'Righteous', sans-serif;
-    font-size: 1.8rem;
+    font-family: 'Press Start 2P', cursive;
+    font-size: 1.2rem;
     color: white;
     margin-bottom: 30px;
 }
 
 .beta-tester-name {
-    font-family: 'Righteous', sans-serif;
-    font-size: 1.5rem;
+    font-family: 'Press Start 2P', cursive;
+    font-size: 1.0rem;
     color: #e2e8f0;
     margin: 8px 0;
 }

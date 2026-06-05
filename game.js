@@ -3862,7 +3862,7 @@ class Game {
         listContainer.innerHTML = 'Cargando testers...';
         
         if (typeof firebase !== 'undefined' && firebase.apps.length) {
-            firebase.database().ref('ranking_emoji_breakout').once('value').then(snap => {
+            firebase.database().ref('leaderboard').once('value').then(snap => {
                 let testers = new Set();
                 if (snap.exists()) {
                     snap.forEach(child => {
