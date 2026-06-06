@@ -644,7 +644,7 @@ class Paddle {
 class Ball {
     constructor(game) {
         this.game = game;
-        this.size = 40; // Ball diameter / Emoji size
+        this.size = 22; // Ball diameter / Emoji size
         this.radius = this.size / 2;
         this.emoji = '⚪'; // Default ball emoji
         this.speedMultiplier = 1;
@@ -1255,11 +1255,9 @@ class Game {
 
         this.ballSkinsDict = {
             'default': { name: "Básica ⚪", emoji: "⚪", price: 0, src: null },
-            'pelota_bigote': { name: "Balón Bigotudo ⚽🧔", emoji: "⚽", price: 200, src: "pelota_bigote.png" },
-            'ojo': { name: "Ojo Pelado 👁️", emoji: "👁️", price: 400, src: "ojo.png" },
-            'dona': { name: "Dona Glaseada 🍩", emoji: "🍩", price: 600, src: "dona.png" },
-            'rueda': { name: "Rueda de Auto 🛞", emoji: "🛞", price: 800, src: "rueda.png" },
-            'ovni': { name: "Invasión OVNI 🛸", emoji: "🛸", price: 1000, src: "ovni.png" }
+            'fuego': { name: "Fuego 🔥", emoji: "🔥", price: 100, src: "bola_fuego.png" },
+            'plasma': { name: "Plasma ⚡", emoji: "⚡", price: 150, src: "bola_plasma.png" },
+            'acero': { name: "Acero ⚙️", emoji: "⚙️", price: 200, src: "bola_acero.png" }
         };
 
         this.ownedBallSkins = getOwnedBallSkins();
@@ -2258,13 +2256,15 @@ class Game {
         getCachedElement('level-display').textContent = this.level;
         getCachedElement('score-display').textContent = this.score;
         
-        let livesText = '';
+        let livesHTML = '';
         if (this.lives <= 5) {
-            livesText = '❤️'.repeat(Math.max(0, this.lives));
+            for (let i = 0; i < Math.max(0, this.lives); i++) {
+                livesHTML += '<img src="pixel_heart.png" class="pixel-heart-icon" alt="Life" style="width:16px;height:16px;vertical-align:middle;margin-right:4px;" />';
+            }
         } else {
-            livesText = '❤️ x' + this.lives;
+            livesHTML = '<img src="pixel_heart.png" class="pixel-heart-icon" alt="Life" style="width:16px;height:16px;vertical-align:middle;margin-right:4px;" /> <span class="arcade-text" style="font-size:0.8rem;vertical-align:middle;">x' + this.lives + '</span>';
         }
-        getCachedElement('lives-display').textContent = livesText;
+        getCachedElement('lives-display').innerHTML = livesHTML;
         
         const coinsDisplay = getCachedElement('coins-display');
         if (coinsDisplay) {
@@ -2392,8 +2392,12 @@ class Game {
                 if (this.ccDistSq < this.ccRadius * this.ccRadius) {
                     this.ccSideHitHorizontal = false;
 
-                    // Fireball piercing logic: fireball does NOT bounce on breakable blocks, but DOES bounce on indestructible ones
-                    if (!this.ccBall.isFireball || this.ccBlock.health === Infinity) {
+                    // Piercing logic: fireball doesn't bounce on breakables, steel doesn't bounce on 1HP blocks
+                    let shouldBounce = true;
+                    if (this.ccBall.isFireball && this.ccBlock.health !== Infinity) shouldBounce = false;
+                    if (this.equippedBallSkin === 'acero' && this.ccBlock.health === 1) shouldBounce = false;
+
+                    if (shouldBounce) {
                         this.ccDist = Math.sqrt(this.ccDistSq) || 0.001;
                         this.ccOverlapX = this.ccRadius - Math.abs(this.ccDistX);
                         this.ccOverlapY = this.ccRadius - Math.abs(this.ccDistY);
