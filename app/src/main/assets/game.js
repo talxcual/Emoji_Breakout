@@ -1987,7 +1987,7 @@ class Game {
         const highScore = window.AndroidInterface ? window.AndroidInterface.getHighScore() : 0;
         // Fetch top 3 global ranking for the marquee
         if (typeof firebase !== 'undefined' && firebase.apps.length) {
-            firebase.database().ref('ranking_emoji_breakout').orderByChild('score').limitToLast(3).once('value').then(snap => {
+            firebase.database().ref('leaderboard').orderByChild('score').limitToLast(3).once('value').then(snap => {
                 let top3 = [];
                 snap.forEach(child => {
                     top3.push(child.val());
@@ -3992,7 +3992,7 @@ class Game {
         listContainer.innerHTML = 'Cargando testers...';
         
         if (typeof firebase !== 'undefined' && firebase.apps.length) {
-            firebase.database().ref('ranking_emoji_breakout').once('value').then(snap => {
+            firebase.database().ref('leaderboard').once('value').then(snap => {
                 let testers = new Set();
                 if (snap.exists()) {
                     snap.forEach(child => {
@@ -4026,7 +4026,7 @@ function syncAchievementsToFirebase() {
         localStorage.setItem('eb_uid', uid);
         // Also update player name if we have one to initialize the node
         let playerName = localStorage.getItem('player_name') || 'Jugador';
-        firebase.database().ref('ranking_emoji_breakout/' + uid).update({
+        firebase.database().ref('leaderboard/' + uid).update({
             name: playerName,
             uid: uid
         });
@@ -4041,7 +4041,7 @@ function syncAchievementsToFirebase() {
     if (unlockedStr.includes('golden_legend')) updates.hasR5 = true;
     
     if (Object.keys(updates).length > 0) {
-        firebase.database().ref('ranking_emoji_breakout/' + uid).update(updates)
+        firebase.database().ref('leaderboard/' + uid).update(updates)
             .then(() => console.log("Achievements synced!"))
             .catch(e => console.error("Error syncing achievements:", e));
     }
@@ -4119,8 +4119,8 @@ async function cargarRankingGlobal() {
 
     try {
         const db = firebase.database();
-        // REGLA ESTRICTA: Leer EXCLUSIVAMENTE de 'ranking_emoji_breakout'
-        const snap = await db.ref('ranking_emoji_breakout').orderByChild('score').limitToLast(50).once('value');
+        // REGLA ESTRICTA: Leer EXCLUSIVAMENTE de 'leaderboard'
+        const snap = await db.ref('leaderboard').orderByChild('score').limitToLast(50).once('value');
         
         if (snap.exists()) {
             let scores = [];
@@ -4196,8 +4196,8 @@ async function guardarRécordGlobal(nickname, puntaje) {
             localStorage.setItem('eb_uid', uid);
         }
         
-        // REGLA ESTRICTA: Escribir EXCLUSIVAMENTE en 'ranking_emoji_breakout'
-        await db.ref('ranking_emoji_breakout/' + uid).update({
+        // REGLA ESTRICTA: Escribir EXCLUSIVAMENTE en 'leaderboard'
+        await db.ref('leaderboard/' + uid).update({
             name: nickname,
             score: puntaje,
             timestamp: firebase.database.ServerValue.TIMESTAMP
