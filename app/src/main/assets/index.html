@@ -194,12 +194,11 @@
             SALDO: <span id="shop-coins-display">0</span> 🪙
         </p>
         
-        <div class="tab-container" style="display: flex; gap: 10px; margin-bottom: 15px;">
-            <button id="tab-shop-buffs-btn" class="tab-btn active-tab" style="padding: 0.5rem 1.5rem; font-size: 1rem;">BUFFS</button>
-            <button id="tab-shop-skins-btn" class="tab-btn" style="padding: 0.5rem 1.5rem; font-size: 1rem;">ASPECTOS</button>
+        <div class="tab-container" style="display: flex; gap: 10px; margin-bottom: 15px; justify-content: center;">
+            <button id="tab-shop-skins-btn" class="menu-btn" style="padding: 10px 40px; font-size: 1.2rem;">SKINS</button>
         </div>
 
-        <div id="panel-shop-buffs" class="scroll-panel" style="width: 100%;">
+        <div id="panel-shop-buffs" class="scroll-panel hidden" style="width: 100%;">
             <div class="shop-container">
                 <div class="shop-item buff-card">
                     <div class="buff-icon">🔥</div>
@@ -220,7 +219,7 @@
             </div>
         </div>
 
-        <div id="panel-shop-skins" class="scroll-panel hidden" style="width: 100%;">
+        <div id="panel-shop-skins" class="scroll-panel" style="width: 100%;">
             <div class="shop-container" id="shop-ball-skins-container">
                 <!-- Se cargará dinámicamente desde game.js -->
             </div>
@@ -228,13 +227,19 @@
         <button id="close-shop-btn" class="menu-btn" style="margin-top: 20px;">VOLVER</button>
     </div>
 
-    <!-- Botones Flotantes de Activación de Buffs (Lado Izquierdo) -->
     <div id="game-buffs-container" class="hidden">
         <button id="activate-double-score-btn" class="hud-buff-btn">
-            x2 <span id="double-score-count-badge">0</span>
+            x2
+            <span class="buff-price">🪙 100</span>
         </button>
         <button id="activate-super-power-btn" class="hud-buff-btn">
-            ⚡ <span id="super-power-count-badge">0</span>
+            <img src="bola_fuego.png" style="width:22px; height:22px; margin-bottom:2px;" />
+            <span class="buff-price">🪙 120</span>
+        </button>
+        <button id="activate-steel-ball-btn" class="hud-buff-btn">
+            <img src="bola_acero.png" style="width:20px; height:20px; margin-bottom:2px;" />
+            <span style="font-size: 0.5rem; color: #fff; line-height:1.2;">BOLA<br/>EXTRA</span>
+            <span class="buff-price">💰 10</span>
         </button>
     </div>
 

@@ -919,57 +919,52 @@ class Block {
     draw(ctx) {
         if (!this.active) return;
 
-        if (this.game.highGraphicsEnabled) {
-            // Draw block base with rounded rect and glow
-            ctx.fillStyle = this.color;
-            ctx.shadowBlur = 8;
-            ctx.shadowColor = this.color;
+        // Base block fill
+        ctx.fillStyle = this.color;
+        ctx.fillRect(Math.floor(this.x), Math.floor(this.y), this.width, this.height);
+
+        // Pixel art bevel - Top & Left Highlight
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.35)';
+        ctx.fillRect(Math.floor(this.x), Math.floor(this.y), this.width, 3); // Top
+        ctx.fillRect(Math.floor(this.x), Math.floor(this.y), 3, this.height); // Left
+
+        // Pixel art bevel - Bottom & Right Shadow
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+        ctx.fillRect(Math.floor(this.x), Math.floor(this.y + this.height - 3), this.width, 3); // Bottom
+        ctx.fillRect(Math.floor(this.x + this.width - 3), Math.floor(this.y), 3, this.height); // Right
+
+        // Icon based on color
+        ctx.font = "14px 'Press Start 2P', cursive";
+        ctx.fillStyle = "rgba(255, 255, 255, 0.75)";
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        let icon = '';
+        if (this.color === '#ef4444') icon = '⚡';
+        else if (this.color === '#f97316' || this.color === '#eab308') icon = 'A';
+        else if (this.color === '#22c55e' || this.color === '#10b981') icon = '🌙';
+        else if (this.color === '#8b5cf6') icon = '💎';
+        
+        if (icon) {
+            ctx.fillText(icon, Math.floor(this.x + this.width / 2), Math.floor(this.y + this.height / 2 + 2)); // +2 to center vertically with font baseline
+        }
+
+        // Draw cracks for damaged blocks
+        if (this.health === 2 && this.maxHealth === 3) {
+            ctx.strokeStyle = 'rgba(0, 0, 0, 0.4)';
+            ctx.lineWidth = 2;
             ctx.beginPath();
-            ctx.roundRect(Math.floor(this.x), Math.floor(this.y), this.width, this.height, 5);
-            ctx.fill();
-            ctx.shadowBlur = 0; // Reset glow
-
-            // Inner bevel/border
-            ctx.strokeStyle = 'rgba(255, 255, 255, 0.25)';
-            ctx.lineWidth = 1.5;
+            ctx.moveTo(Math.floor(this.x + 8), Math.floor(this.y + 6));
+            ctx.lineTo(Math.floor(this.x + 20), Math.floor(this.y + 18));
             ctx.stroke();
-
-            // Draw emoji inside block
-            ctx.font = "16px serif";
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillText(this.emoji, Math.floor(this.x + this.width / 2), Math.floor(this.y + this.height / 2));
-
-            // Draw cracks for damaged blocks
-            if (this.health === 2 && this.maxHealth === 3) {
-                // Mild crack
-                ctx.strokeStyle = 'rgba(0, 0, 0, 0.4)';
-                ctx.lineWidth = 2;
-                ctx.beginPath();
-                ctx.moveTo(Math.floor(this.x + 8), Math.floor(this.y + 6));
-                ctx.lineTo(Math.floor(this.x + 20), Math.floor(this.y + 18));
-                ctx.stroke();
-            } else if (this.health === 1 && this.maxHealth >= 2) {
-                // Heavy crack
-                ctx.strokeStyle = 'rgba(0, 0, 0, 0.55)';
-                ctx.lineWidth = 2;
-                ctx.beginPath();
-                ctx.moveTo(Math.floor(this.x + 8), Math.floor(this.y + 6));
-                ctx.lineTo(Math.floor(this.x + 22), Math.floor(this.y + 18));
-                ctx.lineTo(Math.floor(this.x + 35), Math.floor(this.y + 10));
-                ctx.lineTo(Math.floor(this.x + 50), Math.floor(this.y + 20));
-                ctx.stroke();
-            }
-        } else {
-            // Flat rendering: simple fillRect and text draw
-            ctx.fillStyle = this.color;
-            ctx.fillRect(Math.floor(this.x), Math.floor(this.y), this.width, this.height);
-
-            ctx.font = "16px serif";
-            ctx.fillStyle = "#ffffff";
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillText(this.emoji, Math.floor(this.x + this.width / 2), Math.floor(this.y + this.height / 2));
+        } else if (this.health === 1 && this.maxHealth >= 2) {
+            ctx.strokeStyle = 'rgba(0, 0, 0, 0.55)';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(Math.floor(this.x + 8), Math.floor(this.y + 6));
+            ctx.lineTo(Math.floor(this.x + 22), Math.floor(this.y + 18));
+            ctx.lineTo(Math.floor(this.x + 35), Math.floor(this.y + 10));
+            ctx.lineTo(Math.floor(this.x + 50), Math.floor(this.y + 20));
+            ctx.stroke();
         }
     }
 }
@@ -1255,9 +1250,11 @@ class Game {
 
         this.ballSkinsDict = {
             'default': { name: "Básica ⚪", emoji: "⚪", price: 0, src: null },
-            'fuego': { name: "Fuego 🔥", emoji: "🔥", price: 100, src: "bola_fuego.png" },
-            'plasma': { name: "Plasma ⚡", emoji: "⚡", price: 150, src: "bola_plasma.png" },
-            'acero': { name: "Acero ⚙️", emoji: "⚙️", price: 200, src: "bola_acero.png" }
+            'pelota_bigote': { name: "Balón Bigotudo 🥸", emoji: "🥸", price: 40, src: "pelota_bigote.png" },
+            'ojo': { name: "Ojo Pelado 👁️", emoji: "👁️", price: 80, src: "ojo.png" },
+            'dona': { name: "Dona Glaseada 🍩", emoji: "🍩", price: 120, src: "dona.png" },
+            'rueda': { name: "Rueda de Auto 🛞", emoji: "🛞", price: 160, src: "rueda.png" },
+            'ovni': { name: "Invasión OVNI 🛸", emoji: "🛸", price: 200, src: "ovni.png" }
         };
 
         this.ownedBallSkins = getOwnedBallSkins();
@@ -1710,6 +1707,14 @@ class Game {
             });
         }
 
+        const actSteelBtn = getCachedElement('activate-steel-ball-btn');
+        if (actSteelBtn) {
+            actSteelBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.activateSteelBallBuff();
+            });
+        }
+
         // Daily Gift Button
         const dailyGiftBtn = getCachedElement('daily-gift-btn');
         if (dailyGiftBtn) {
@@ -1980,14 +1985,9 @@ class Game {
 
     updateRecordDisplay() {
         const highScore = window.AndroidInterface ? window.AndroidInterface.getHighScore() : 0;
-        const bottomHighScore = getCachedElement('bottom-high-score-display');
-        if (bottomHighScore) {
-            bottomHighScore.textContent = highScore;
-        }
-
         // Fetch top 3 global ranking for the marquee
         if (typeof firebase !== 'undefined' && firebase.apps.length) {
-            firebase.database().ref('leaderboard').orderByChild('score').limitToLast(3).once('value').then(snap => {
+            firebase.database().ref('ranking_emoji_breakout').orderByChild('score').limitToLast(3).once('value').then(snap => {
                 let top3 = [];
                 snap.forEach(child => {
                     top3.push(child.val());
@@ -1996,12 +1996,12 @@ class Game {
                 if (top3.length > 0) {
                     const marqueeText = document.querySelector('.marquee-text');
                     if (marqueeText) {
-                        const medals = ["🥇", "🥈", "🥉"];
+                        const medals = ["🏆", "🥈", "🥉"];
                         let text = "";
                         for(let i=0; i<top3.length; i++) {
-                            text += `${medals[i]} ${top3[i].name} - ${top3[i].score} PTS   `;
+                            text += `${medals[i]} ${top3[i].name.toUpperCase()} - ${top3[i].score} PTS \u00A0\u00A0\u00A0\u00A0\u00A0 `;
                         }
-                        marqueeText.innerHTML = text.toUpperCase();
+                        marqueeText.innerHTML = text;
                     }
                 }
             }).catch(e => console.error("Error fetching top 3", e));
@@ -2520,7 +2520,7 @@ class Game {
             chestAnim.className = 'chest-shake';
             chestDesc.textContent = 'Abriendo el cofre de la racha perfecta...';
 
-            if (this.flawlessStreak) {
+            if (this.flawlessStreak || this.level === 10) {
                 let skinId = '';
                 let skinName = '';
                 if (this.level === 10) { skinId = 'neon_green'; skinName = 'Verde Neón'; }
@@ -2533,6 +2533,9 @@ class Game {
                 if (!unlocked.includes(skinId)) {
                     unlocked.push(skinId);
                     saveUnlockedSkins(unlocked);
+                }
+                if (typeof syncAchievementsToFirebase === 'function') {
+                    syncAchievementsToFirebase();
                 }
 
                 setTimeout(() => {
@@ -3485,6 +3488,14 @@ class Game {
     }
 
     updateBuffButtonsUI() {
+        let globalCoins = 0;
+        if (window.AndroidInterface && window.AndroidInterface.getCoins) {
+            globalCoins = window.AndroidInterface.getCoins();
+        } else {
+            globalCoins = parseInt(localStorage.getItem('player_coins') || '0', 10);
+        }
+        let totalCoins = globalCoins + this.coinsCollected;
+
         const doubleBadge = getCachedElement('double-score-count-badge');
         if (doubleBadge) doubleBadge.textContent = this.doubleScoreCount;
 
@@ -3494,7 +3505,7 @@ class Game {
         const doubleBtn = getCachedElement('activate-double-score-btn');
         if (doubleBtn) {
             // Keep button enabled, adjust opacity to indicate availability
-            doubleBtn.style.opacity = (this.doubleScoreCount <= 0) ? "0.35" : "0.85";
+            doubleBtn.style.opacity = (totalCoins < 100) ? "0.35" : "0.85";
             if (this.scoreMultiplier === 2) {
                 doubleBtn.style.background = "rgba(16, 185, 129, 0.4)";
                 doubleBtn.style.borderColor = "#10b981";
@@ -3508,9 +3519,8 @@ class Game {
 
         const superBtn = getCachedElement('activate-super-power-btn');
         if (superBtn) {
-            // Keep button enabled, adjust opacity to indicate availability
-            superBtn.style.opacity = (this.superPowerCount <= 0) ? "0.35" : "0.85";
-            if (this.paddleTimer > 0 || this.fireballTimer > 0) {
+            superBtn.style.opacity = (totalCoins < 120) ? "0.35" : "0.85";
+            if (this.fireballTimer > 0) {
                 superBtn.style.background = "rgba(245, 158, 11, 0.4)";
                 superBtn.style.borderColor = "#f59e0b";
                 superBtn.style.boxShadow = "0 0 15px rgba(245, 158, 11, 0.5)";
@@ -3520,55 +3530,100 @@ class Game {
                 superBtn.style.boxShadow = "0 4px 12px rgba(0, 0, 0, 0.4)";
             }
         }
+
+        const steelBtn = getCachedElement('activate-steel-ball-btn');
+        if (steelBtn) {
+            steelBtn.style.opacity = (totalCoins < 10) ? "0.35" : "0.85";
+        }
+    }
+
+    spendCoins(amount) {
+        let globalCoins = 0;
+        if (window.AndroidInterface && window.AndroidInterface.getCoins) {
+            globalCoins = window.AndroidInterface.getCoins();
+        } else {
+            globalCoins = parseInt(localStorage.getItem('player_coins') || '0', 10);
+        }
+        
+        let totalCoins = globalCoins + this.coinsCollected;
+        if (totalCoins < amount) {
+            return false;
+        }
+
+        if (this.coinsCollected >= amount) {
+            this.coinsCollected -= amount;
+        } else {
+            let remainder = amount - this.coinsCollected;
+            this.coinsCollected = 0;
+            globalCoins -= remainder;
+            if (window.AndroidInterface && window.AndroidInterface.saveCoins) {
+                window.AndroidInterface.saveCoins(globalCoins);
+            } else {
+                localStorage.setItem('player_coins', globalCoins.toString());
+            }
+        }
+        this.updateUI();
+        return true;
     }
 
     activateDoubleScoreBuff() {
-        if (this.doubleScoreCount <= 0) {
-            this.showBuffToast("Sin fichas x2 en stock");
-            return;
-        }
         if (this.scoreMultiplier === 2) {
             this.showBuffToast("¡X2 ya está activo!");
             return;
         }
-        this.doubleScoreCount--;
-        saveDoubleScoreCount(this.doubleScoreCount);
+        if (!this.spendCoins(100)) {
+            this.showBuffToast("No tienes suficientes monedas (100)");
+            return;
+        }
         
         this.scoreMultiplier = 2;
         this.doubleScoreTimer = 15.0;
-        this.showBuffToast(`¡X2 ACTIVADO! (Quedan: ${this.doubleScoreCount})`);
+        this.showBuffToast("¡X2 ACTIVADO!");
         playSFX('powerup');
         this.updateBuffButtonsUI();
-        this.saveGameState(); // Save game state to persist the active multiplier
+        this.saveGameState();
     }
 
     activateSuperPowerBuff() {
-        if (this.superPowerCount <= 0) {
-            this.showBuffToast("Sin buffs en stock");
+        if (this.fireballTimer > 0) {
+            this.showBuffToast("¡Bola de Fuego ya activa!");
             return;
         }
-        if (this.paddleTimer > 0 || this.fireballTimer > 0) {
-            this.showBuffToast("¡Buff ya activo!");
+        if (!this.spendCoins(120)) {
+            this.showBuffToast("No tienes suficientes monedas (120)");
             return;
         }
-        this.superPowerCount--;
-        saveSuperPowerCount(this.superPowerCount);
         
-        // Choose one of the two randomly (Paddle size OR Fireball)
-        if (Math.random() < 0.5) {
-            this.paddle.width = this.paddle.baseWidth * 1.6;
-            this.paddleTimer = 15.0; // active for 15s
-        } else {
-            this.balls.forEach(ball => {
-                ball.isFireball = true;
-                ball.emoji = '🔥';
-            });
-            this.fireballTimer = 15.0; // active for 15s
-        }
-        this.showBuffToast(`¡BUFF ACTIVADO! (Quedan: ${this.superPowerCount})`);
+        this.fireballTimer = 10.0;
+        this.balls.forEach(b => {
+            b.isFireball = true;
+            b.emoji = '🔥';
+        });
+        this.showBuffToast("¡BOLA DE FUEGO ACTIVADA!");
         playSFX('powerup');
         this.updateBuffButtonsUI();
-        this.saveGameState(); // Save game state to persist the active super power timers
+        this.saveGameState(); // Save game state to persist active timers
+    }
+
+    activateSteelBallBuff() {
+        if (!this.spendCoins(10)) {
+            this.showBuffToast("No tienes suficientes monedas (10)");
+            return;
+        }
+        
+        // Spawn a new extra ball from paddle center
+        let extraBall = new Ball(this);
+        extraBall.x = this.paddle.x + this.paddle.width / 2;
+        extraBall.y = this.paddle.y - 15;
+        let currentSkin = localStorage.getItem('player_equipped_skin') || 'default';
+        extraBall.skin = currentSkin;
+        extraBall.speedY = -Math.abs(extraBall.speedY);
+        this.balls.push(extraBall);
+        
+        this.showBuffToast("¡BOLA EXTRA ACTIVADA!");
+        playSFX('powerup');
+        this.updateBuffButtonsUI();
+        this.saveGameState();
     }
 
     showBuffToast(message) {
@@ -3937,7 +3992,7 @@ class Game {
         listContainer.innerHTML = 'Cargando testers...';
         
         if (typeof firebase !== 'undefined' && firebase.apps.length) {
-            firebase.database().ref('leaderboard').once('value').then(snap => {
+            firebase.database().ref('ranking_emoji_breakout').once('value').then(snap => {
                 let testers = new Set();
                 if (snap.exists()) {
                     snap.forEach(child => {
@@ -3962,20 +4017,38 @@ class Game {
 }
 
 
-function syncR1AchievementToFirebase() {
-    let uid = localStorage.getItem('eb_uid');
-    if (!uid || typeof firebase === 'undefined' || !firebase.apps.length) return;
+function syncAchievementsToFirebase() {
+    if (typeof firebase === 'undefined' || !firebase.apps.length) return;
     
-    let unlockedStr = localStorage.getItem('player_unlocked_skins') || 'default';
-    if (unlockedStr.includes('neon_green')) {
-        firebase.database().ref('leaderboard/' + uid).update({ hasR1: true })
-            .then(() => console.log("R1 Achievement synced!"))
-            .catch(e => console.error("Error syncing R1:", e));
+    let uid = localStorage.getItem('eb_uid');
+    if (!uid) {
+        uid = 'user_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
+        localStorage.setItem('eb_uid', uid);
+        // Also update player name if we have one to initialize the node
+        let playerName = localStorage.getItem('player_name') || 'Jugador';
+        firebase.database().ref('ranking_emoji_breakout/' + uid).update({
+            name: playerName,
+            uid: uid
+        });
+    }
+    
+    let unlockedStr = getUnlockedSkins().join(',');
+    let updates = {};
+    if (unlockedStr.includes('neon_green')) updates.hasR1 = true;
+    if (unlockedStr.includes('sunset_orange')) updates.hasR2 = true;
+    if (unlockedStr.includes('electric_blue')) updates.hasR3 = true;
+    if (unlockedStr.includes('hot_pink')) updates.hasR4 = true;
+    if (unlockedStr.includes('golden_legend')) updates.hasR5 = true;
+    
+    if (Object.keys(updates).length > 0) {
+        firebase.database().ref('ranking_emoji_breakout/' + uid).update(updates)
+            .then(() => console.log("Achievements synced!"))
+            .catch(e => console.error("Error syncing achievements:", e));
     }
 }
 
 // Llama al sync una vez al cargar
-setTimeout(syncR1AchievementToFirebase, 2000);
+setTimeout(syncAchievementsToFirebase, 2000);
 
 document.addEventListener("DOMContentLoaded", function() {
     const creditsBtn = document.getElementById('credits-btn');
@@ -4002,6 +4075,19 @@ document.addEventListener("DOMContentLoaded", function() {
     }
 
     gameInstance = new Game();
+    
+    // DEV CHEATS
+    localStorage.setItem('max_level', '50');
+    if (window.AndroidInterface && window.AndroidInterface.saveMaxLevel) {
+        window.AndroidInterface.saveMaxLevel(50);
+    }
+    let devCoins = parseInt(localStorage.getItem('player_coins') || '0', 10);
+    if (devCoins < 10000) {
+        localStorage.setItem('player_coins', '10000');
+        if (window.AndroidInterface && window.AndroidInterface.saveCoins) {
+            window.AndroidInterface.saveCoins(10000);
+        }
+    }
     gameInstance.init();
 });
 
@@ -4021,7 +4107,7 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 
 async function cargarRankingGlobal() {
-    if (typeof syncR1AchievementToFirebase === 'function') syncR1AchievementToFirebase();
+    if (typeof syncAchievementsToFirebase === 'function') syncAchievementsToFirebase();
     const tbody = getCachedElement('leaderboard-tbody');
     if (!tbody) return;
     
@@ -4033,8 +4119,8 @@ async function cargarRankingGlobal() {
 
     try {
         const db = firebase.database();
-        // REGLA ESTRICTA: Leer EXCLUSIVAMENTE de 'leaderboard'
-        const snap = await db.ref('leaderboard').orderByChild('score').limitToLast(50).once('value');
+        // REGLA ESTRICTA: Leer EXCLUSIVAMENTE de 'ranking_emoji_breakout'
+        const snap = await db.ref('ranking_emoji_breakout').orderByChild('score').limitToLast(50).once('value');
         
         if (snap.exists()) {
             let scores = [];
@@ -4051,15 +4137,39 @@ async function cargarRankingGlobal() {
                 if (index === 1) medal = '🥈';
                 if (index === 2) medal = '🥉';
 
+                let playerUid = localStorage.getItem('eb_uid');
+                let playerName = localStorage.getItem('player_name');
+                let isCurrentPlayer = (data.uid && data.uid === playerUid) || (data.name && data.name === playerName);
+                
+                let unlockedSkins = localStorage.getItem('player_unlocked_skins') || '';
+                let hasR1 = data.hasR1 || (isCurrentPlayer && unlockedSkins.includes('neon_green'));
+                let hasR2 = data.hasR2 || (isCurrentPlayer && unlockedSkins.includes('sunset_orange'));
+                let hasR3 = data.hasR3 || (isCurrentPlayer && unlockedSkins.includes('electric_blue'));
+                let hasR4 = data.hasR4 || (isCurrentPlayer && unlockedSkins.includes('hot_pink'));
+                let hasR5 = data.hasR5 || (isCurrentPlayer && unlockedSkins.includes('golden_legend'));
+
                 let avatarSrc = data.profilePic || "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'><circle cx='40' cy='40' r='40' fill='%238b5cf6'/><text x='40' y='50' font-size='32' text-anchor='middle' fill='white'>?</text></svg>";
                 const tr = document.createElement('tr');
-                if (data.hasR1) tr.className = 'ranking-r1-row';
-                let r1Badge = data.hasR1 ? ' <span class="r1-badge" title="Racha de 10 niveles (R1)">R1</span>' : '';
+                
+                let badgesHTML = '';
+                if (hasR1) badgesHTML += '<br><span class="r1-badge-neon" style="color:#10b981; border-color:#10b981; text-shadow:0 0 5px #10b981;">RACHA PERFECTA ZONA 1</span>';
+                if (hasR2) badgesHTML += '<br><span class="r1-badge-neon" style="color:#f97316; border-color:#f97316; text-shadow:0 0 5px #f97316;">RACHA PERFECTA ZONA 2</span>';
+                if (hasR3) badgesHTML += '<br><span class="r1-badge-neon" style="color:#3b82f6; border-color:#3b82f6; text-shadow:0 0 5px #3b82f6;">RACHA PERFECTA ZONA 3</span>';
+                if (hasR4) badgesHTML += '<br><span class="r1-badge-neon" style="color:#ec4899; border-color:#ec4899; text-shadow:0 0 5px #ec4899;">RACHA PERFECTA ZONA 4</span>';
+                if (hasR5) badgesHTML += '<br><span class="r1-badge-neon" style="color:#fbbf24; border-color:#fbbf24; text-shadow:0 0 5px #fbbf24;">RACHA PERFECTA ZONA 5</span>';
+
+                if (hasR5) tr.style.boxShadow = 'inset 0 0 15px rgba(251,191,36,0.5)';
+                else if (hasR4) tr.style.boxShadow = 'inset 0 0 15px rgba(236,72,153,0.5)';
+                else if (hasR3) tr.style.boxShadow = 'inset 0 0 15px rgba(59,130,246,0.5)';
+                else if (hasR2) tr.style.boxShadow = 'inset 0 0 15px rgba(249,115,22,0.5)';
+                else if (hasR1) tr.style.boxShadow = 'inset 0 0 15px rgba(16,185,129,0.5)';
                 tr.innerHTML = `
                     <td>${medal}</td>
-                    <td style="text-align: left; padding-left: 10px;">
+                    <td style="text-align: left; padding-left: 10px; line-height: 1.4;">
                         <img class="leaderboard-avatar" src="${avatarSrc}" alt="Avatar">
-                        ${data.name || 'Jugador'}${r1Badge}
+                        <div style="display:inline-block; vertical-align:middle;">
+                            ${data.name || 'Jugador'}${badgesHTML}
+                        </div>
                     </td>
                     <td>${data.maxLevel || 1}</td>
                     <td style="color: #eab308; font-weight: bold;">${data.score || 0}</td>
@@ -4086,13 +4196,19 @@ async function guardarRécordGlobal(nickname, puntaje) {
             localStorage.setItem('eb_uid', uid);
         }
         
-        // REGLA ESTRICTA: Escribir EXCLUSIVAMENTE en 'leaderboard'
-        await db.ref('leaderboard/' + uid).set({
+        // REGLA ESTRICTA: Escribir EXCLUSIVAMENTE en 'ranking_emoji_breakout'
+        await db.ref('ranking_emoji_breakout/' + uid).update({
             name: nickname,
             score: puntaje,
             timestamp: firebase.database.ServerValue.TIMESTAMP
         });
-        console.log("Récord guardado exitosamente en Firebase (leaderboard).");
+        
+        // Sincronizar logros inmediatamente después para asegurar que estén en Firebase
+        if (typeof syncAchievementsToFirebase === 'function') {
+            syncAchievementsToFirebase();
+        }
+        
+        console.log("Récord guardado exitosamente en Firebase (ranking_emoji_breakout).");
     } catch (e) {
         console.error("Error al guardar récord en Firebase:", e);
     }
