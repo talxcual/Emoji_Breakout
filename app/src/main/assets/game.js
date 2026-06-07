@@ -4147,11 +4147,16 @@ async function cargarRankingGlobal() {
                 const tr = document.createElement('tr');
                 
                 let badgesHTML = '';
-                if (hasR1) badgesHTML += '<br><span class="r1-badge-neon" style="color:#10b981; border-color:#10b981; text-shadow:0 0 5px #10b981;">RACHA PERFECTA ZONA 1</span>';
-                if (hasR2) badgesHTML += '<br><span class="r1-badge-neon" style="color:#f97316; border-color:#f97316; text-shadow:0 0 5px #f97316;">RACHA PERFECTA ZONA 2</span>';
-                if (hasR3) badgesHTML += '<br><span class="r1-badge-neon" style="color:#3b82f6; border-color:#3b82f6; text-shadow:0 0 5px #3b82f6;">RACHA PERFECTA ZONA 3</span>';
-                if (hasR4) badgesHTML += '<br><span class="r1-badge-neon" style="color:#ec4899; border-color:#ec4899; text-shadow:0 0 5px #ec4899;">RACHA PERFECTA ZONA 4</span>';
-                if (hasR5) badgesHTML += '<br><span class="r1-badge-neon" style="color:#fbbf24; border-color:#fbbf24; text-shadow:0 0 5px #fbbf24;">RACHA PERFECTA ZONA 5</span>';
+                let badgesList = [];
+                if (hasR1) badgesList.push('<span class="zone-badge badge-z1" data-tooltip="Racha Perfecta Zona 1" title="Racha Perfecta Zona 1">Z1</span>');
+                if (hasR2) badgesList.push('<span class="zone-badge badge-z2" data-tooltip="Racha Perfecta Zona 2" title="Racha Perfecta Zona 2">Z2</span>');
+                if (hasR3) badgesList.push('<span class="zone-badge badge-z3" data-tooltip="Racha Perfecta Zona 3" title="Racha Perfecta Zona 3">Z3</span>');
+                if (hasR4) badgesList.push('<span class="zone-badge badge-z4" data-tooltip="Racha Perfecta Zona 4" title="Racha Perfecta Zona 4">Z4</span>');
+                if (hasR5) badgesList.push('<span class="zone-badge badge-z5" data-tooltip="Racha Perfecta Zona 5" title="Racha Perfecta Zona 5">Z5</span>');
+                
+                if (badgesList.length > 0) {
+                    badgesHTML = `<div class="zone-badges-container">${badgesList.join('')}</div>`;
+                }
 
                 tr.style.boxShadow = '';
                 if (hasR5) tr.style.boxShadow = 'inset 0 0 15px rgba(251,191,36,0.5)';
@@ -4161,14 +4166,17 @@ async function cargarRankingGlobal() {
                 else if (hasR1) tr.style.boxShadow = 'inset 0 0 15px rgba(16,185,129,0.5)';
                 tr.innerHTML = `
                     <td>${medal}</td>
-                    <td style="text-align: left; padding-left: 10px; line-height: 1.4;">
+                    <td style="text-align: left; padding-left: 10px; line-height: 1.2; vertical-align: middle;">
                         <img class="leaderboard-avatar" src="${avatarSrc}" alt="Avatar">
                         <div style="display:inline-block; vertical-align:middle;">
-                            ${data.name || 'Jugador'}${badgesHTML}
+                            <div style="display: flex; flex-direction: column; justify-content: center;">
+                                <span class="player-nickname" style="font-weight: bold; color: #fff;">${data.name || 'Jugador'}</span>
+                                ${badgesHTML}
+                            </div>
                         </div>
                     </td>
-                    <td>${data.maxLevel || 1}</td>
-                    <td style="color: #eab308; font-weight: bold;">${data.score || 0}</td>
+                    <td style="vertical-align: middle;">${data.maxLevel || 1}</td>
+                    <td style="color: #eab308; font-weight: bold; vertical-align: middle;">${data.score || 0}</td>
                 `;
                 tbody.appendChild(tr);
             });
