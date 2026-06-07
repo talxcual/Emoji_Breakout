@@ -4137,16 +4137,11 @@ async function cargarRankingGlobal() {
                 if (index === 1) medal = '🥈';
                 if (index === 2) medal = '🥉';
 
-                let playerUid = localStorage.getItem('eb_uid');
-                let playerName = localStorage.getItem('player_name');
-                let isCurrentPlayer = (data.uid && data.uid === playerUid) || (data.name && data.name === playerName);
-                
-                let unlockedSkins = localStorage.getItem('player_unlocked_skins') || '';
-                let hasR1 = data.hasR1 || (isCurrentPlayer && unlockedSkins.includes('neon_green'));
-                let hasR2 = data.hasR2 || (isCurrentPlayer && unlockedSkins.includes('sunset_orange'));
-                let hasR3 = data.hasR3 || (isCurrentPlayer && unlockedSkins.includes('electric_blue'));
-                let hasR4 = data.hasR4 || (isCurrentPlayer && unlockedSkins.includes('hot_pink'));
-                let hasR5 = data.hasR5 || (isCurrentPlayer && unlockedSkins.includes('golden_legend'));
+                let hasR1 = !!data.hasR1;
+                let hasR2 = !!data.hasR2;
+                let hasR3 = !!data.hasR3;
+                let hasR4 = !!data.hasR4;
+                let hasR5 = !!data.hasR5;
 
                 let avatarSrc = data.profilePic || "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'><circle cx='40' cy='40' r='40' fill='%238b5cf6'/><text x='40' y='50' font-size='32' text-anchor='middle' fill='white'>?</text></svg>";
                 const tr = document.createElement('tr');
@@ -4158,6 +4153,7 @@ async function cargarRankingGlobal() {
                 if (hasR4) badgesHTML += '<br><span class="r1-badge-neon" style="color:#ec4899; border-color:#ec4899; text-shadow:0 0 5px #ec4899;">RACHA PERFECTA ZONA 4</span>';
                 if (hasR5) badgesHTML += '<br><span class="r1-badge-neon" style="color:#fbbf24; border-color:#fbbf24; text-shadow:0 0 5px #fbbf24;">RACHA PERFECTA ZONA 5</span>';
 
+                tr.style.boxShadow = '';
                 if (hasR5) tr.style.boxShadow = 'inset 0 0 15px rgba(251,191,36,0.5)';
                 else if (hasR4) tr.style.boxShadow = 'inset 0 0 15px rgba(236,72,153,0.5)';
                 else if (hasR3) tr.style.boxShadow = 'inset 0 0 15px rgba(59,130,246,0.5)';
@@ -4196,11 +4192,23 @@ async function guardarRécordGlobal(nickname, puntaje) {
             localStorage.setItem('eb_uid', uid);
         }
         
+        let unlockedStr = getUnlockedSkins().join(',');
+        let hasR1 = unlockedStr.includes('neon_green');
+        let hasR2 = unlockedStr.includes('sunset_orange');
+        let hasR3 = unlockedStr.includes('electric_blue');
+        let hasR4 = unlockedStr.includes('hot_pink');
+        let hasR5 = unlockedStr.includes('golden_legend');
+        
         // REGLA ESTRICTA: Escribir EXCLUSIVAMENTE en 'leaderboard'
         await db.ref('leaderboard/' + uid).update({
             name: nickname,
             score: puntaje,
-            timestamp: firebase.database.ServerValue.TIMESTAMP
+            timestamp: firebase.database.ServerValue.TIMESTAMP,
+            hasR1: hasR1,
+            hasR2: hasR2,
+            hasR3: hasR3,
+            hasR4: hasR4,
+            hasR5: hasR5
         });
         
         // Sincronizar logros inmediatamente después para asegurar que estén en Firebase
@@ -4208,7 +4216,7 @@ async function guardarRécordGlobal(nickname, puntaje) {
             syncAchievementsToFirebase();
         }
         
-        console.log("Récord guardado exitosamente en Firebase (ranking_emoji_breakout).");
+        console.log("Récord guardado exitosamente en Firebase (leaderboard).");
     } catch (e) {
         console.error("Error al guardar récord en Firebase:", e);
     }
