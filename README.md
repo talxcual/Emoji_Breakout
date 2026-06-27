@@ -102,6 +102,12 @@ app/
 
 ---
 
+## 📜 Licencia
+
+Proyecto privado — **Emoji Breakout** © 2026. Todos los derechos reservados.
+
+---
+
 <p align="center">
   Hecho con 🕹️ y mucho neón en Chile.
 </p>
