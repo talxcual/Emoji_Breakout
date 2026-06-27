@@ -75,26 +75,7 @@ El repositorio está organizado de la siguiente manera:
 
 ---
 
-## ⚙️ Configuración y Requisitos
 
-### Requisitos Previos
-* **Android Studio** (Koala o más reciente recomendado)
-* **Android SDK** (Min API 26+)
-* **JDK 17**
-* **Firebase Project** configurado (google-services.json y credenciales Realtime Database activadas).
-
-### Pasos para Ejecutar
-1. Clona el repositorio:
-   ```bash
-   git clone https://github.com/talxcual/Emoji_Breakout.git
-   ```
-2. Abre el proyecto en **Android Studio**.
-3. Asegúrate de incluir el archivo `google-services.json` (Firebase) en el directorio `app/`.
-4. Deja que Gradle cargue e instale las dependencias del proyecto de forma automática.
-5. Conecta un dispositivo físico o ejecuta un Emulador de Android.
-6. Haz clic en **Run app** (botón verde de reproducción) para compilar y disfrutar del juego.
-
----
 
 ## 📈 Mejoras Completadas Recientemente
 * [x] Conectar la base de datos de Firebase RTDB para el ranking global en tiempo real.
