@@ -166,6 +166,41 @@ class GameInterface(private val context: Context, private val webView: WebView) 
         return preferences.getInt("high_score", 0)
     }
 
+    @JavascriptInterface
+    fun getFirebaseConfig(): String {
+        val json = JSONObject()
+        try {
+            val res = context.resources
+            val packageName = context.packageName
+            
+            val apiKeyId = res.getIdentifier("google_api_key", "string", packageName)
+            val apiKey = if (apiKeyId != 0) res.getString(apiKeyId) else ""
+            
+            val appIdId = res.getIdentifier("google_app_id", "string", packageName)
+            val appId = if (appIdId != 0) res.getString(appIdId) else ""
+            
+            val dbUrlId = res.getIdentifier("firebase_database_url", "string", packageName)
+            val dbUrl = if (dbUrlId != 0) res.getString(dbUrlId) else ""
+            
+            val projectIdId = res.getIdentifier("project_id", "string", packageName)
+            val projectId = if (projectIdId != 0) res.getString(projectIdId) else ""
+            
+            val bucketId = res.getIdentifier("google_storage_bucket", "string", packageName)
+            val bucket = if (bucketId != 0) res.getString(bucketId) else ""
+            
+            json.put("apiKey", apiKey)
+            json.put("authDomain", "$projectId.firebaseapp.com")
+            json.put("databaseURL", dbUrl)
+            json.put("projectId", projectId)
+            json.put("storageBucket", bucket)
+            json.put("messagingSenderId", appId.split(":").getOrNull(1) ?: "")
+            json.put("appId", appId)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error al generar JSON de configuración de Firebase", e)
+        }
+        return json.toString()
+    }
+
     // --- LEADERBOARD GLOBAL (TOP 50) ---
 
     @JavascriptInterface

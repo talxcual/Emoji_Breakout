@@ -4094,16 +4094,32 @@ document.addEventListener("DOMContentLoaded", function() {
 // ==========================================
 // FIREBASE BACKEND INTEGRATION (LEADERBOARD)
 // ==========================================
-const firebaseConfig = {
-    apiKey: "AIzaSyDxWTvtUiE3hG0fPOin2TNJ1s4elDcCDss",
-    authDomain: "emoji-breakout.firebaseapp.com",
-    databaseURL: "https://emoji-breakout-default-rtdb.firebaseio.com",
-    projectId: "emoji-breakout",
-    storageBucket: "emoji-breakout.firebasestorage.app",
-    messagingSenderId: "1039875513324",
-    appId: "1:1039875513324:web:66d66fd69584743ec03ec9",
-    measurementId: "G-H66R5G6ENJ"
-};
+let firebaseConfig = null;
+if (window.AndroidInterface && typeof window.AndroidInterface.getFirebaseConfig === 'function') {
+    try {
+        const configStr = window.AndroidInterface.getFirebaseConfig();
+        if (configStr) {
+            firebaseConfig = JSON.parse(configStr);
+            console.log("Firebase config loaded dynamically from Android interface.");
+        }
+    } catch (e) {
+        console.error("Error loading Firebase config from Android interface:", e);
+    }
+}
+
+// Fallback config with placeholder for local web testing
+if (!firebaseConfig || !firebaseConfig.apiKey) {
+    firebaseConfig = {
+        apiKey: "YOUR_FIREBASE_API_KEY_HERE",
+        authDomain: "emoji-breakout.firebaseapp.com",
+        databaseURL: "https://emoji-breakout-default-rtdb.firebaseio.com",
+        projectId: "emoji-breakout",
+        storageBucket: "emoji-breakout.firebasestorage.app",
+        messagingSenderId: "1039875513324",
+        appId: "1:1039875513324:web:66d66fd69584743ec03ec9",
+        measurementId: "G-H66R5G6ENJ"
+    };
+}
 firebase.initializeApp(firebaseConfig);
 
 async function cargarRankingGlobal() {
