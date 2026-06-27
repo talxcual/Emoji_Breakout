@@ -2,7 +2,22 @@
 
 ¡Bienvenido a **Emoji Breakout**! Este es un emocionante juego de estilo Breakout (rompe-ladrillos) diseñado para dispositivos Android, que combina la flexibilidad del desarrollo web (HTML5 Canvas + CSS3 + JavaScript) con la potencia de Kotlin nativo.
 
-El juego cuenta con un total de **50 niveles** de dificultad progresiva, mecánicas interactivas de bloques móviles, físicas fluidas con deformación elástica de la bola, y efectos visuales de partículas.
+El juego cuenta con un total de **50 niveles** de dificultad progresiva, mecánicas interactivas de bloques móviles, físicas fluidas con deformación elástica de la bola, efectos visuales de neón y partículas, un sistema de logros, tienda, y ranking global en tiempo real.
+
+---
+
+## 📸 Capturas de Pantalla
+
+<div align="center">
+  <img src="screenshots/1.png" width="200" alt="Pantalla 1">
+  <img src="screenshots/2.png" width="200" alt="Pantalla 2">
+  <img src="screenshots/3.png" width="200" alt="Pantalla 3">
+  <img src="screenshots/4.png" width="200" alt="Pantalla 4">
+  <img src="screenshots/5.png" width="200" alt="Pantalla 5">
+  <img src="screenshots/6.png" width="200" alt="Pantalla 6">
+  <img src="screenshots/7.png" width="200" alt="Pantalla 7">
+  <img src="screenshots/8.png" width="200" alt="Pantalla 8">
+</div>
 
 ---
 
@@ -16,7 +31,7 @@ El juego cuenta con un total de **50 niveles** de dificultad progresiva, mecáni
   * 🧱 **Ladrillo Común** (2 golpes): Ladrillo resistente que requiere dos impactos.
   * 🍓🍊🍋🍏 **Ladrillos Simples** (1 golpe): Ladrillos de colores con frutas u objetos.
 * **Bloques Móviles**: A partir del nivel 20, un porcentaje de los bloques se desplaza lateralmente para añadir dificultad.
-* **Efectos de Partículas**: Animaciones de partículas al destruir bloques basadas en el color y tipo de bloque roto.
+* **Efectos de Partículas y Estética Neón**: Animaciones de partículas al destruir bloques, explosiones vibrantes y una interfaz pulida de estilo arcade moderno competitivo.
 
 ### ⚡ Power-ups y Debuffs (Efectos Especiales)
 Al romper ciertos bloques, caerán ítems con efectos temporales que alteran el juego:
@@ -28,12 +43,20 @@ Al romper ciertos bloques, caerán ítems con efectos temporales que alteran el 
 * 💀 **Velocidad Extrema (`fast`)**: *Debuff* que acelera la bola un 1.7x durante 6 segundos.
 * 🌀 **Controles Invertidos (`inverted`)**: *Debuff* que invierte el movimiento de la barra (y la tiñe de color rojo) por 8 segundos.
 
+### 🛒 Tienda y Logros
+* **Sistema de Monedas**: Recolecta monedas durante el juego para usarlas en la tienda.
+* **Tienda de Mejoras**: Compra power-ups para usar en cualquier momento (ej. Iniciar con Bola de Fuego, Bola Extra).
+* **Rachas Perfectas (Logros)**: Logros especiales por superar zonas de 10 niveles sin perder vidas (Z1, Z2, Z3, Z4, Z5). Los jugadores con logros mostrarán insignias compactas en el Ranking Global.
+
+### 🏆 Ranking Global y Perfiles
+* **Autenticación**: Integración de inicio de sesión y selección de foto de perfil.
+* **Clasificación Mundial**: Tabla de clasificación (Leaderboard) global en tiempo real utilizando Firebase Realtime Database. Compara tu puntuación, nivel máximo y logros con jugadores de todo el mundo.
+
 ### 📱 Integración Nativa Android (Kotlin ⇄ JavaScript)
 El juego se renderiza en un `WebView` de alto rendimiento y se comunica con el sistema nativo a través de una interfaz de puente (`AndroidInterface`):
 * **Sistema de Audio Nativo**: Controlado en Kotlin por un `SoundManager` nativo usando `SoundPool` para baja latencia (SFX de rebotes, golpes, pérdidas de vida y power-ups) y `MediaPlayer` para música de fondo en bucle.
 * **Control de Música inteligente**: Pausa automáticamente la música de fondo si la aplicación pasa a segundo plano (`onPause`) y la reanuda al volver al primer plano (`onResume`).
-* **Progreso de Juego**: Guardado y carga persistente del récord de puntuación y el nivel máximo alcanzado en el almacenamiento local con `SharedPreferences`.
-* **Sincronización en la Nube (Mock)**: Estructura preparada mediante `ScoreRepository` y `FirebaseScoreRepository` para integrar fácilmente servicios en la nube como Firebase Firestore para tablas de clasificación global.
+* **Sincronización en la Nube**: Conexión a Firebase para el guardado de récords en el Ranking y persistencia local de progreso, puntaje, monedas y compras en la tienda.
 
 ---
 
@@ -42,14 +65,13 @@ El juego se renderiza en un `WebView` de alto rendimiento y se comunica con el s
 El repositorio está organizado de la siguiente manera:
 
 * **`/app/src/main/assets/`** - Contiene los recursos frontend del juego:
-  * `index.html` - Interfaz principal del juego y overlays de menús.
-  * `style.css` - Estilos modernos con paleta de colores vibrantes y soporte responsivo.
-  * `game.js` - Núcleo del motor de físicas, animaciones en Canvas y el bucle del juego (`GameLoop`).
+  * `index.html` - Interfaz principal del juego, overlay de menús, tienda y perfiles.
+  * `style.css` - Estilos modernos con paleta de colores vibrantes, estética neón y soporte responsivo.
+  * `game.js` - Núcleo del motor de físicas, animaciones en Canvas, sistema de partículas, gestión de Firebase RTDB y bucle del juego (`GameLoop`).
 * **`/app/src/main/java/com/ktoledo/emoji_breakout/`** - Código fuente Kotlin nativo de Android:
   * `MainActivity.kt` - Punto de entrada principal que carga el `WebView` y conecta la app al ciclo de vida del sistema.
   * `GameInterface.kt` - El puente `@JavascriptInterface` que permite a JavaScript ejecutar funciones del dispositivo móvil.
   * `SoundManager.kt` - Administrador de sonidos y audio en segundo plano usando APIs nativas.
-  * `ScoreRepository.kt` - Interfaz y mock de base de datos para almacenar récords locales e integrarse con Firebase en la nube.
 
 ---
 
@@ -59,6 +81,7 @@ El repositorio está organizado de la siguiente manera:
 * **Android Studio** (Koala o más reciente recomendado)
 * **Android SDK** (Min API 26+)
 * **JDK 17**
+* **Firebase Project** configurado (google-services.json y credenciales Realtime Database activadas).
 
 ### Pasos para Ejecutar
 1. Clona el repositorio:
@@ -66,13 +89,18 @@ El repositorio está organizado de la siguiente manera:
    git clone https://github.com/talxcual/Emoji_Breakout.git
    ```
 2. Abre el proyecto en **Android Studio**.
-3. Deja que Gradle cargue e instale las dependencias del proyecto de forma automática.
-4. Conecta un dispositivo físico o ejecuta un Emulador de Android.
-5. Haz clic en **Run app** (botón verde de reproducción) para compilar y disfrutar del juego.
+3. Asegúrate de incluir el archivo `google-services.json` (Firebase) en el directorio `app/`.
+4. Deja que Gradle cargue e instale las dependencias del proyecto de forma automática.
+5. Conecta un dispositivo físico o ejecuta un Emulador de Android.
+6. Haz clic en **Run app** (botón verde de reproducción) para compilar y disfrutar del juego.
 
 ---
 
-## 📈 Futuras Mejoras
-* [ ] Conectar la base de datos de Firestore en `FirebaseScoreRepository` para activar el ranking global en tiempo real.
+## 📈 Mejoras Completadas Recientemente
+* [x] Conectar la base de datos de Firebase RTDB para el ranking global en tiempo real.
+* [x] Implementar tienda, ítems virtuales y monedas.
+* [x] Sistema de insignias en ranking para logros de racha perfecta por zonas (Z1 a Z5).
+
+## 🔮 Futuras Mejoras
 * [ ] Agregar más niveles interactivos y bloques con físicas de gravedad.
 * [ ] Implementar un editor de niveles personalizado desde la interfaz web.
